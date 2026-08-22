@@ -1,0 +1,207 @@
+{% import "_app_shell.html" as app_shell %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Fleet CLI Control · Nexus</title>
+  {{ app_shell.app_icons() }}
+  <meta name="theme-color" content="#080d0f">
+  <meta name="color-scheme" content="dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Nexus">
+  <link rel="stylesheet" href="/static/vendor/xterm/xterm.css">
+  <link rel="stylesheet" href="/static/nexus.css?v={{ shell_asset_v }}">
+  <link rel="stylesheet" href="/static/gemini.css?v=control-mobile-3">
+</head>
+<body class="nexus-app-body">
+  <div class="circuits"></div>
+  <div class="nexus nexus-app-frame"><div class="screen">
+  {{ app_shell.dashboard_chrome("control", chrome_snap, chrome_accent, chrome_unread, chrome_stamp, false, chrome_system_status) }}
+  <main class="gemini-shell nexus-page-content">
+    {{ app_shell.content_header("fleet CLI control", "ready", "globalState") }}
+
+    <section class="control-picker" aria-labelledby="providerPickerTitle">
+      <div class="picker-heading">
+        <div>
+          <p class="kicker">01 · provider</p>
+          <h2 id="providerPickerTitle">Choose a CLI</h2>
+        </div>
+        <p id="providerDetail">{{ providers[0].strategy_detail }}</p>
+      </div>
+      <nav class="provider-tabs" role="tablist" aria-label="CLI provider">
+        {% for provider in providers %}
+        <button class="provider-tab{% if loop.first %} active{% endif %}" type="button"
+                role="tab" aria-selected="{{ 'true' if loop.first else 'false' }}"
+                data-provider="{{ provider.key }}"
+                data-label="{{ provider.label }}"
+                data-strategy-model="{{ provider.strategy_model }}"
+                data-strategy-models='{{ provider.strategy_models | tojson }}'
+                data-supports-auto-mode="{{ 'true' if provider.supports_auto_mode else 'false' }}"
+                data-worker-model="{{ provider.worker_model }}"
+                data-strategy-detail="{{ provider.strategy_detail }}"
+                data-worker-detail="{{ provider.worker_detail }}">
+          <span class="provider-name">{{ provider.label }}</span>
+          <span class="provider-model">{{ provider.strategy_model }} · {{ provider.worker_model }}</span>
+        </button>
+        {% endfor %}
+      </nav>
+    </section>
+
+    <nav class="role-tabs" aria-label="Control mode">
+      <button class="role-tab active" type="button" data-panel="strategy" aria-pressed="true">Strategy</button>
+      <button class="role-tab" type="button" data-panel="worker" aria-pressed="false">Worker</button>
+    </nav>
+
+    <div class="picker-heading host-heading">
+      <div>
+        <p class="kicker">02 · host</p>
+        <h2>Choose a node</h2>
+      </div>
+    </div>
+    <section class="device-strip" aria-label="Fleet nodes">
+      {% for host in hosts %}
+      <button class="device{% if loop.first %} selected{% endif %}" type="button"
+              data-host="{{ host.key }}" data-seat="{{ host.seat }}">
+        <span class="device-name">{{ host.label }}</span>
+        <span class="device-seat">{{ host.seat }}</span>
+        <span class="device-state"><i></i><b>available</b></span>
+      </button>
+      {% endfor %}
+    </section>
+
+    <section class="panel active" id="strategyPanel">
+      <div class="panel-head">
+        <div>
+          <p class="kicker"><span id="strategyProvider">Claude</span> · <span id="strategySeat">Worker2</span> · premium reasoning</p>
+          <h2 id="strategyTitle">Claude on Alpha</h2>
+        </div>
+        <div class="terminal-actions">
+          <button id="reconnectTerminal" type="button">Connect</button>
+          <button id="stopTerminal" class="danger" type="button">Stop</button>
+        </div>
+      </div>
+      <p class="explainer" id="strategyExplainer">A real interactive Claude CLI session. Approvals,
+        resume controls, artifacts, and conversation history stay native to Claude on this node.</p>
+      <p class="explainer" id="strategyRouting">Checking the quota-aware strategy recommendation…</p>
+
+      <div class="strategy-console" data-testid="strategy-console">
+        <div class="session-toolbar" aria-label="Live session controls">
+          <div class="session-context">
+            <span class="session-dot" aria-hidden="true"></span>
+            <span id="sessionLabel">Claude · Alpha</span>
+          </div>
+          <label class="session-select" for="strategyModel">
+            <span>model</span>
+            <select id="strategyModel" aria-label="Live session model"></select>
+          </label>
+          <button id="autoMode" class="mode-button" type="button" aria-pressed="false" hidden>
+            auto off
+          </button>
+          <div class="view-tabs" role="tablist" aria-label="Strategy session view">
+            <button class="view-tab active" type="button" role="tab" aria-selected="true"
+                    aria-controls="chatView" data-view="chat">chat</button>
+            <button class="view-tab" type="button" role="tab" aria-selected="false"
+                    aria-controls="terminalView" data-view="terminal">terminal</button>
+          </div>
+        </div>
+
+        <div id="chatView" class="chat-workspace" role="tabpanel">
+          <div id="chatThread" class="chat-thread" aria-live="polite" aria-label="CLI conversation">
+            <article class="chat-message assistant intro-message">
+              <div class="message-meta"><span id="chatProviderLabel">Claude</span><span>native CLI session</span></div>
+              <p>Connect to start. Use Chat for prompts and slash commands, or Terminal for native controls.</p>
+              <button class="inline-terminal-link" type="button" data-open-terminal>Open Terminal</button>
+            </article>
+          </div>
+
+          <div id="slashPalette" class="slash-palette" hidden aria-label="Slash commands"></div>
+
+          <form id="chatComposer" class="chat-composer">
+            <button id="slashButton" class="composer-tool" type="button" aria-label="Show slash commands">/</button>
+            <label class="sr-only" for="chatInput">Message the connected CLI</label>
+            <textarea id="chatInput" rows="1" maxlength="64000"
+                      placeholder="Connect to message Claude…" enterkeyhint="enter"
+                      autocapitalize="sentences" autocomplete="off" spellcheck="true"></textarea>
+            <button id="sendPrompt" class="send-prompt" type="submit" aria-label="Send message" disabled>↑</button>
+          </form>
+          <p class="composer-hint">Return adds a line · ⌘/Ctrl + Return sends</p>
+        </div>
+
+        <div id="terminalView" class="terminal-view" role="tabpanel" hidden>
+          <div class="terminal-wrap">
+            <div class="terminal-status"><span id="terminalState">ready</span><span id="terminalHost">claude · alpha</span></div>
+            <div id="terminal" aria-label="Interactive Claude strategy terminal"></div>
+          </div>
+          <div class="keybar" aria-label="Terminal shortcut keys">
+            <button type="button" data-key="\u001b">esc</button>
+            <button type="button" data-key="\t">tab</button>
+            <button type="button" data-key="\u0003">ctrl-c</button>
+            <button type="button" data-key="\u0010">ctrl-p</button>
+            <button type="button" data-key="\u000e">ctrl-n</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="workerPanel" hidden>
+      <div class="panel-head">
+        <div>
+          <p class="kicker"><span id="workerProvider">Claude</span> · <span id="workerSeat">Worker2</span> · bounded execution</p>
+          <h2 id="workerTitle">Alpha Claude worker run</h2>
+        </div>
+      </div>
+      <p class="explainer" id="workerExplainer">One scoped headless Claude run. It uses the node’s
+        worker profile, preserves its bounded permission policy, and stores a durable run record on Nexus.</p>
+      <p class="explainer" id="workerRouting">Checking the quota-aware worker recommendation…</p>
+      <label class="field">
+        <span>Exact worker prompt</span>
+        <textarea id="workerPrompt" rows="10" placeholder="State the exact host, paths, scope, stop condition, verification, and rollback."></textarea>
+      </label>
+      <div class="worker-controls">
+        <label class="field compact">
+          <span>Timeout</span>
+          <select id="workerTimeout">
+            <option value="900">15 minutes</option>
+            <option value="1800" selected>30 minutes</option>
+            <option value="3600">1 hour</option>
+            <option value="7200">2 hours</option>
+          </select>
+        </label>
+        <label class="field compact">
+          <span>Task size</span>
+          <select id="workerTaskSize">
+            <option value="tiny">Tiny</option>
+            <option value="small" selected>Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+          </select>
+        </label>
+        <label class="confirm">
+          <input id="workerConfirmed" type="checkbox">
+          <span>I reviewed this bounded execution prompt.</span>
+        </label>
+        <button id="launchWorker" class="primary" type="button">Launch worker</button>
+      </div>
+      <p class="form-message" id="workerMessage" role="status"></p>
+      <div class="runs">
+        <h3 id="workerRunsTitle">Recent Claude worker runs</h3>
+        <div id="workerRuns"><p class="empty">No runs launched from this Nexus process.</p></div>
+      </div>
+    </section>
+  </main>
+  </div></div>
+
+  <script src="/static/app_shell.js?v={{ shell_asset_v }}" defer></script>
+  <script src="/static/vendor/xterm/xterm.js"></script>
+  <script src="/static/vendor/xterm-addon-fit/addon-fit.js"></script>
+  <script src="/static/vendor/xterm-addon-web-links/addon-web-links.js"></script>
+  <script src="/static/gemini.js?v=control-mobile-3"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+    }
+  </script>
+</body>
+</html>

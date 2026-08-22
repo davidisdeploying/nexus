@@ -1,0 +1,254 @@
+{# Shared Nexus navigation and subpage header primitives. #}
+{% macro app_icons() -%}
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/nexus-eye-180.png">
+<link rel="icon" type="image/svg+xml" href="/static/icons/nexus-eye.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="/static/icons/nexus-eye-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/static/icons/nexus-eye-512.png">
+<link rel="mask-icon" href="/static/icons/nexus-eye-mask.svg" color="#57e0d8">
+{%- endmacro %}
+
+{% macro nexus_eye(class_name="", element_id="") -%}
+<svg{% if class_name %} class="{{ class_name }}"{% endif %}{% if element_id %} id="{{ element_id }}"{% endif %}
+     viewBox="0 0 512 512" aria-hidden="true">
+  <path class="nexus-eye-mark" d="M260.47 99.72c-91.048 0-192.525 75.168-240.97 34.186L53.594 212c66.497-49.548 134.417-74.814 203.22-74.813 68.086.002 136.5 24.718 204.81 73.188l37.97-86.72C413.754 169.89 353.168 99.72 260.47 99.72zm-.908 61.78c-40.49 0-73.093 32.603-73.093 73.094 0 40.49 32.602 73.094 73.093 73.094 40.49 0 73.093-32.603 73.093-73.094 0-40.49-32.603-73.094-73.094-73.094zm-59.406.47c-48.482 10.503-96.806 34.607-145.25 72.624 47.25 34.594 94 57.436 140.53 68.47-18.292-17.147-29.75-41.508-29.75-68.47 0-29.213 13.447-55.388 34.47-72.625zm120.75 1.655c19.904 17.233 32.53 42.668 32.53 70.97.002 27.2-11.672 51.737-30.248 68.905 46.285-10.716 92.886-33.366 140.125-68.656-48.152-36.303-95.56-59.94-142.407-71.22zM259.562 202.5c18.207 0 32.97 14.73 32.97 32.938 0 18.206-14.763 32.968-32.97 32.968-18.206 0-32.968-14.762-32.968-32.97 0-18.205 14.762-32.936 32.97-32.936zM53.5 256.594l-34 77.875c48.445-40.983 208.337-10.156 240.97 137.405C294.296 329.59 413.752 298.487 499.593 344.72L462 258.905c-56.18 39.47-112.568 62.356-169.03 68.72l-33.94 58.75-34.124-59.063c-57.467-7.005-114.595-30.95-171.406-70.72z"/>
+</svg>
+{%- endmacro %}
+
+{% macro icon(name) -%}
+<svg class="nexus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  {%- if name == "dashboard" -%}
+  <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+  <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+  {%- elif name == "activity" -%}
+  <path d="M4 19V9m5 10V5m6 14v-7m5 7V3"/>
+  {%- elif name == "commits" -%}
+  <path d="M3 12h6m6 0h6"/><circle cx="12" cy="12" r="3"/>
+  {%- elif name == "usage" -%}
+  <path d="M4.9 18.2a9 9 0 1 1 14.2 0"/><path d="m12 12 4.2-4.2"/><circle cx="12" cy="12" r="1"/>
+  {%- elif name == "conformance" -%}
+  <path d="M12 3 20 7v5c0 4.5-3 7.5-8 9-5-1.5-8-4.5-8-9V7l8-4Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/>
+  {%- elif name == "control-plane" -%}
+  <path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/>
+  {%- elif name == "watchdogs" -%}
+  <path d="M12 3 20 7v5c0 4.5-3 7.5-8 9-5-1.5-8-4.5-8-9V7l8-4Z"/><circle cx="12" cy="12" r="2.5"/>
+  {%- elif name == "health" -%}
+  <path d="M3 12h4l2.2-5 4.1 10 2.2-5H21"/><path d="M4.5 5.5A9 9 0 1 1 4 18"/>
+  {%- elif name == "operations" -%}
+  <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>
+  <path d="M12 3v4m0 10v4M3 12h4m10 0h4"/>
+  {%- elif name == "workers" -%}
+  <circle cx="12" cy="6" r="2.5"/><circle cx="5" cy="17" r="2.5"/><circle cx="19" cy="17" r="2.5"/>
+  <path d="m10.7 8.2-4.3 6.6m6.9-6.6 4.3 6.6M7.5 17h9"/>
+  {%- elif name == "jobs" -%}
+  <rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 3.5h6M8 9h8M8 14h5m-5 4h8"/>
+  {%- elif name == "control" -%}
+  <path d="m5 7 5 5-5 5M12 17h7"/><rect x="2" y="3" width="20" height="18" rx="3"/>
+  {%- elif name == "settings" -%}
+  <path d="M4 7h10m4 0h2M4 17h2m4 0h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>
+  {%- elif name == "notifications" -%}
+  <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>
+  {%- elif name == "notifications-clear" -%}
+  <path d="M18 8a6 6 0 0 0-10.8-3.6M6 8c0 7-3 7-3 9h14M10 21h4"/><path d="m4 4 16 16"/>
+  {%- elif name == "scan" -%}
+  <path d="M20 6v5h-5M4 18v-5h5"/><path d="M18.2 9A7 7 0 0 0 6 6.8M5.8 15A7 7 0 0 0 18 17.2"/>
+  {%- elif name == "back" -%}
+  <path d="m15 18-6-6 6-6"/>
+  {%- endif -%}
+</svg>
+{%- endmacro %}
+
+{% macro app_nav(current="dashboard", unread=0, system_state="warn", dashboard=false) -%}
+<nav class="nexus-app-nav" aria-label="Primary navigation">
+  <div class="nexus-app-nav__track">
+    <a class="nexus-app-link{% if current == 'activity' %} is-active{% endif %}" href="/activity"{% if current == 'activity' %} aria-current="page"{% endif %}>{{ icon("activity") }}<span>activity</span></a>
+    <a class="nexus-app-link{% if current == 'operations' %} is-active{% endif %}" href="/operations"{% if current == 'operations' %} aria-current="page"{% endif %}>{{ icon("operations") }}<span>operations</span></a>
+    <a class="nexus-app-link nexus-app-link--desktop-notifications{% if current == 'notifications' %} is-active{% endif %}"
+       id="notifyBell" href="/notifications" aria-label="Notifications"{% if current == 'notifications' %} aria-current="page"{% endif %}>
+      {{ icon("notifications") }}<span>notifications</span>
+      <span class="nexus-app-notification-count" id="bellCount" data-bell-count{% if not unread %} style="display:none"{% endif %}>{{ unread }}</span>
+      <span class="nexus-app-notification-health" id="bellHealthDot" data-bell-health-dot hidden></span>
+    </a>
+    <a class="nexus-app-link nexus-app-link--desktop-status{% if current == 'system-status' %} is-active{% endif %}"
+       href="/system-status" data-system-status data-system-state="{{ system_state }}"
+       aria-label="System status: {{ system_state }}"{% if current == 'system-status' %} aria-current="page"{% endif %}>
+      {{ icon("health") }}<span data-system-status-label>Status</span>
+    </a>
+    <a class="nexus-app-link nexus-app-link--mobile-notifications{% if current == 'notifications' %} is-active{% endif %}"
+       href="/notifications" aria-label="Notifications"{% if current == 'notifications' %} aria-current="page"{% endif %}>
+      {{ icon("notifications") }}<span>notifications</span>
+      <span class="nexus-app-notification-count" data-bell-count{% if not unread %} style="display:none"{% endif %}>{{ unread }}</span>
+      <span class="nexus-app-notification-health" data-bell-health-dot hidden></span>
+    </a>
+    <a class="nexus-app-link nexus-app-link--mobile-status{% if current == 'system-status' %} is-active{% endif %}"
+       href="/system-status" data-system-status data-system-state="{{ system_state }}"
+       aria-label="System status: {{ system_state }}"{% if current == 'system-status' %} aria-current="page"{% endif %}>
+      {{ icon("health") }}<span data-system-status-label>Status</span>
+    </a>
+  </div>
+</nav>
+{%- endmacro %}
+
+{# One warning-chip source for the dashboard and every adopted top-level page. #}
+{% macro warning_chips(snap, symbols) -%}
+  {%- for node in snap.nodes if node.health.value != 'ok' -%}
+    {%- set first_problem = namespace(kind='') -%}
+    {%- for probe in node.probes -%}
+      {%- if probe.health.value != 'ok' and not first_problem.kind -%}
+        {%- set first_problem.kind = probe.kind -%}
+      {%- endif -%}
+    {%- endfor -%}
+    <a class="wt-chip {{ node.health.value }}" href="/#node-{{ node.name|lower|replace(' ','-') }}"><span class="wt-sym">{{ symbols.get(node.health.value,'⚠') }}</span><span>{{ node.name }}{% if first_problem.kind %} {{ first_problem.kind|lower }}{% endif %}</span></a>
+  {%- endfor -%}
+  {%- if snap.work and snap.work.jobs -%}
+    {%- for job in snap.work.jobs if job.state in ('failed','stalled') -%}
+      <a class="wt-chip {{ 'crit' if job.state == 'failed' else 'warn' }}" href="/#jobstable"><span class="wt-sym">{{ '✕' if job.state == 'failed' else '⚠' }}</span><span>{{ job.job or 'job' }} {{ job.state }}</span></a>
+    {%- endfor -%}
+  {%- endif -%}
+  {%- if snap.seats and snap.seats.seats -%}
+    {%- for seat in snap.seats.seats if seat.state == 'died' -%}
+      <a class="wt-chip crit" href="/#seatstrip"><span class="wt-sym">✕</span><span>{{ seat.label or seat.seat }} died</span></a>
+    {%- endfor -%}
+  {%- endif -%}
+{%- endmacro %}
+
+{# The dashboard chrome is the application shell. Pages select only nav state. #}
+{% macro dashboard_chrome(current, snap, accent, unread=0, stamp_text="—", dashboard=false, system_status=None) -%}
+{% set system_state = system_status.overall if system_status and system_status.overall else 'warn' %}
+{% set system_eye_accent = {'ok':'developed', 'warn':'safelight', 'critical':'overexposed'}.get(system_state, 'safelight') %}
+<div class="nexus-sticky-shell">
+<header class="nexus-dashboard-chrome">
+  <div class="nexus-brand">
+  {{ nexus_eye("eye " ~ system_eye_accent, "overall-eye") }}
+  <div class="titles">
+    <h1>Nexus</h1>
+  </div>
+  </div>
+  <div class="overall {{ accent[snap.overall] if snap else 'unexposed' }}" id="overall-wrap">
+    <span class="stamp" id="stamp">{{ stamp_text }}</span>
+    <span class="clock" id="clock">--:--:-- CT</span>
+  </div>
+  <div class="header-controls" id="headerControls">
+    <a class="bell mobile-dashboard-control{% if current == 'dashboard' %} is-active{% endif %}"
+       href="/" aria-label="Dashboard"{% if current == 'dashboard' %} aria-current="page"{% endif %}>
+      {{ icon("dashboard") }}
+    </a>
+    <a class="bell mobile-cli-control{% if current == 'control' %} is-active{% endif %}"
+       href="/control" aria-label="CLI"{% if current == 'control' %} aria-current="page"{% endif %}>
+      {{ icon("control") }}<span class="bell-label">CLI</span>
+    </a>
+    <button class="scan-control mobile-refresh-control" type="button" data-refresh-control
+            aria-label="Refresh fleet status" title="Refresh fleet status"{% if dashboard %} onclick="developNow(event)"{% endif %}>{{ icon("scan") }}</button>
+    <div class="warnticker" id="warnticker" role="region" aria-label="Fleet warning ticker">
+      {% if snap %}
+      <span class="wt-lead {{ accent[snap.overall] }}"><span class="lamp"></span><span class="wt-lead-word">{{ snap.overall.value }}</span></span>
+      {% set symbols = {'crit':'✕','warn':'⚠','unknown':'○'} %}
+      {% set chip_html %}{{ warning_chips(snap, symbols) }}{% endset %}
+      {% if chip_html|trim %}
+      <div class="wt-viewport"><div class="wt-track" id="wtTrack">
+        <div class="wt-list">{{ chip_html|safe }}</div>
+        <div class="wt-list wt-dup" inert aria-hidden="true">{{ chip_html|safe }}</div>
+      </div></div>
+      {% else %}
+      <div class="wt-viewport wt-ok"><span class="wt-ok-msg"><b>all systems ok</b> · fleet nominal</span></div>
+      {% endif %}
+      {% else %}
+      <span class="wt-lead unexposed"><span class="lamp"></span><span class="wt-lead-word">no signal</span></span>
+      {% endif %}
+    </div>
+  </div>
+</header>
+{{ app_nav(current, unread, system_state, dashboard) }}
+</div>
+<script src="/static/notifications.js?v={{ shell_asset_v }}" defer></script>
+<script src="/static/system_status.js?v={{ shell_asset_v }}" defer></script>
+{%- endmacro %}
+
+{% macro content_header(title, status_text="", status_id="") -%}
+<header class="nexus-content-head">
+  <div class="nexus-content-title">
+    <h2>{{ title }}</h2>
+  </div>
+  {% if status_text or status_id %}<span{% if status_id %} id="{{ status_id }}"{% endif %} class="nexus-content-status" aria-live="polite">{{ status_text }}</span>{% endif %}
+</header>
+{%- endmacro %}
+
+{% macro operations_header(current, status_text="", status_id="") -%}
+{{ content_header("fleet operations", status_text, status_id) }}
+<nav class="nexus-lens-tabs nexus-lens-tabs--four" aria-label="Operations views">
+  <a class="nexus-lens-tab{% if current == 'health' %} is-active{% endif %}" href="/operations?tab=health"{% if current == 'health' %} aria-current="page"{% endif %}>{{ icon("health") }}<span>Health</span></a>
+  <a class="nexus-lens-tab{% if current == 'conformance' %} is-active{% endif %}" href="/operations?tab=conformance"{% if current == 'conformance' %} aria-current="page"{% endif %}>{{ icon("conformance") }}<span>Conformance</span></a>
+  <a class="nexus-lens-tab{% if current == 'watchdogs' %} is-active{% endif %}" href="/operations?tab=watchdogs"{% if current == 'watchdogs' %} aria-current="page"{% endif %}>{{ icon("watchdogs") }}<span>Watchdogs</span></a>
+  <a class="nexus-lens-tab{% if current == 'indexes' %} is-active{% endif %}" href="/operations?tab=indexes"{% if current == 'indexes' %} aria-current="page"{% endif %}>{{ icon("control-plane") }}<span>Indexes</span></a>
+</nav>
+<div class="nexus-lens-head">
+  <span>operational lens</span>
+  <h3>{{ current }}</h3>
+</div>
+{%- endmacro %}
+
+{% macro status_header(current="overview", status_text="", status_id="") -%}
+{{ content_header("fleet status", status_text, status_id) }}
+<nav class="nexus-lens-tabs nexus-lens-tabs--four" aria-label="Status views">
+  <a class="nexus-lens-tab{% if current == 'overview' %} is-active{% endif %}" href="/system-status?tab=overview"{% if current == 'overview' %} aria-current="page"{% endif %}>{{ icon("health") }}<span>Overview</span></a>
+  <a class="nexus-lens-tab{% if current == 'systems' %} is-active{% endif %}" href="/system-status?tab=systems"{% if current == 'systems' %} aria-current="page"{% endif %}>{{ icon("operations") }}<span>Systems</span></a>
+  <a class="nexus-lens-tab{% if current == 'governance' %} is-active{% endif %}" href="/system-status?tab=governance"{% if current == 'governance' %} aria-current="page"{% endif %}>{{ icon("conformance") }}<span>Governance</span></a>
+  <a class="nexus-lens-tab{% if current == 'services' %} is-active{% endif %}" href="/system-status?tab=services"{% if current == 'services' %} aria-current="page"{% endif %}>{{ icon("dashboard") }}<span>Services</span></a>
+</nav>
+<div class="nexus-lens-head">
+  <span>status lens</span>
+  <h3 id="statusLensTitle">{{ current }}</h3>
+</div>
+{%- endmacro %}
+
+{% macro activity_header(current="overview", status_text="", status_id="") -%}
+{{ content_header("fleet activity", status_text, status_id) }}
+<div class="nexus-lens-tabs activity-tabs" role="tablist" aria-label="Activity views">
+  <button type="button" class="nexus-lens-tab{% if current == 'overview' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if current == 'overview' else 'false' }}" aria-controls="overview" data-tab="overview" tabindex="{{ '0' if current == 'overview' else '-1' }}">{{ icon("commits") }}<span>Commits</span></button>
+  <button type="button" class="nexus-lens-tab{% if current == 'models' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if current == 'models' else 'false' }}" aria-controls="models" data-tab="models" tabindex="{{ '0' if current == 'models' else '-1' }}">{{ icon("usage") }}<span>Models</span></button>
+  <button type="button" class="nexus-lens-tab{% if current == 'workers' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if current == 'workers' else 'false' }}" aria-controls="workers" data-tab="workers" tabindex="{{ '0' if current == 'workers' else '-1' }}">{{ icon("workers") }}<span>Workers</span></button>
+  <button type="button" class="nexus-lens-tab{% if current == 'jobs' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if current == 'jobs' else 'false' }}" aria-controls="jobs" data-tab="jobs" tabindex="{{ '0' if current == 'jobs' else '-1' }}">{{ icon("jobs") }}<span>Jobs</span></button>
+</div>
+<div class="nexus-lens-head activity-lens-head">
+  <span>activity lens</span>
+  <h3 id="activityLensTitle">{{ 'commits' if current == 'overview' else current }}</h3>
+</div>
+{%- endmacro %}
+
+{% macro notifications_header(groups, current_group="workers", current_tab="inbox", status_text="", status_id="", unread=0) -%}
+{% set active_group = namespace(label="notifications") %}
+{% for group in groups %}{% if group.key == current_group %}{% set active_group.label = group.label %}{% endif %}{% endfor %}
+<div class="notification-page-header">
+  {{ content_header("fleet notifications", status_text, status_id) }}
+  <div class="notification-page-controls">
+    <button class="notification-header-control" id="clearNotifications" type="button"
+            aria-label="Clear all notifications" title="Clear badge and delivered notifications">
+      {{ icon('notifications-clear') }}
+    </button>
+    <a class="notification-header-control" href="{{ '/notifications' if current_tab == 'preferences' else '/notifications?tab=preferences' }}"
+       aria-label="{{ 'Return to notification inbox' if current_tab == 'preferences' else 'Notification preferences' }}"
+       title="{{ 'Inbox' if current_tab == 'preferences' else 'Preferences' }}">
+      {{ icon('notifications' if current_tab == 'preferences' else 'settings') }}
+    </a>
+  </div>
+</div>
+<nav class="nexus-lens-tabs nexus-lens-tabs--four notification-group-index" aria-label="Notification groups"{% if current_tab == 'inbox' %} role="tablist"{% endif %}>
+  {% for group in groups %}
+  <a class="nexus-lens-tab notification-group-picker{% if current_tab == 'inbox' and group.key == current_group %} is-active{% endif %}"
+     href="/notifications?group={{ group.key }}" data-notification-group="{{ group.key }}"
+     data-notification-group-label="{{ group.label }}"{% if current_tab == 'inbox' %}
+     id="notification-group-tab-{{ group.key }}" role="tab"
+     aria-selected="{{ 'true' if group.key == current_group else 'false' }}"
+     aria-controls="notification-group-{{ group.key }}"
+     tabindex="{{ '0' if group.key == current_group else '-1' }}"{% endif %}>
+    <span class="notification-group-index__icon">{{ icon(group.icon) }}</span><span class="notification-group-label">{{ group.label }}</span>
+  </a>
+  {% endfor %}
+</nav>
+<div class="nexus-lens-head notification-lens-head">
+  <span>{{ 'notification settings' if current_tab == 'preferences' else 'notification lens' }}</span>
+  <h3 id="notificationLensTitle">{{ 'preferences' if current_tab == 'preferences' else active_group.label }}</h3>
+  {% if current_tab == 'inbox' and unread %}<div class="notification-lens-actions"><button type="button" class="notification-lens-action" id="markAllRead">Mark all read</button></div>{% endif %}
+</div>
+{%- endmacro %}

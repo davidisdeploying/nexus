@@ -1,0 +1,54 @@
+{% import "_app_shell.html" as app_shell %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07110f">
+  <title>model usage · Nexus</title>
+  {{ app_shell.app_icons() }}
+  <link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+  <link rel="stylesheet" href="/static/model_usage.css?v={{ model_usage_asset_v }}">
+</head>
+<body class="nexus-app-body">
+  <div class="circuits"></div>
+  <div class="nexus nexus-app-frame"><div class="screen">
+  {{ app_shell.dashboard_chrome("usage", chrome_snap, chrome_accent, chrome_unread, chrome_stamp, false, chrome_system_status) }}
+  <main class="usage-shell nexus-page-content">
+    {{ app_shell.content_header("model usage", "loading history", "usageStatus") }}
+
+    <section class="usage-card" aria-labelledby="usageTitle">
+      <h2 id="usageTitle" class="sr-only">model usage history</h2>
+      <header class="usage-controls">
+        <div class="providers" role="group" aria-label="Provider">
+          <button class="active" data-provider="all">All</button>
+          <button data-provider="claude">Claude</button>
+          <button data-provider="codex">Codex</button>
+          <button data-provider="gemini">Gemini</button>
+        </div>
+        <div class="ranges" role="group" aria-label="History range">
+          <button data-range="all">All</button>
+          <button data-range="90d">90d</button>
+          <button class="active" data-range="30d">30d</button>
+          <button data-range="7d">7d</button>
+          <button data-range="24h">24h</button>
+        </div>
+      </header>
+      <p id="usageMessage" class="usage-message" aria-live="polite"></p>
+      <div id="usageBody"><p class="empty">collecting telemetry…</p></div>
+      <footer class="usage-meta">
+        <span>five-minute snapshots · event ledger · no credentials or raw responses</span>
+        <span id="usageDatabase"></span>
+      </footer>
+    </section>
+
+    <details class="events-drawer">
+      <summary>quota events <span id="eventCount"></span></summary>
+      <div id="usageEvents"><p class="empty">No events in this range.</p></div>
+    </details>
+  </main>
+  </div></div>
+  <script src="/static/app_shell.js?v={{ shell_asset_v }}" defer></script>
+  <script src="/static/model_usage.js?v={{ model_usage_asset_v }}" defer></script>
+</body>
+</html>

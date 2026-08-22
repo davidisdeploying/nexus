@@ -1,0 +1,59 @@
+{% import "_app_shell.html" as app_shell %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>worker activity · Nexus</title>
+{{ app_shell.app_icons() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+<link rel="stylesheet" href="/static/herospath.css?v={{ herospath_css_v }}">
+</head>
+<body class="wiki-body">
+<div class="circuits"></div>
+<div class="nexus">
+<div class="screen">
+
+  <div class="wiki-head">
+    <a class="eye" href="/" title="Fleet board">
+      {{ app_shell.nexus_eye() }}
+    </a>
+    <a class="brand" href="/activity?tab=workers">
+      <h1>worker activity</h1>
+    </a>
+    <div class="tools">
+      <a class="navlink" href="/activity">activity</a>
+    </div>
+  </div>
+
+  <div class="crumb">the traced trail of a run — assistant, thinking, tools, in and out</div>
+
+  {% if not_found %}
+  <div class="hp-notfound">no transcript for <code>{{ not_found }}</code> — pick a run below.</div>
+  {% endif %}
+
+  {% if runs %}
+  <ul class="hp-runlist">
+    {% for r in runs %}
+    <li>
+      <a href="/activity/workers/{{ r.token }}">{{ r.token }}</a>
+      <span class="hp-run-meta">
+        <span class="hp-seat {{ r.seat_class }}">{{ r.seat }}</span>
+        · <span class="hp-state-{{ r.state }}">{{ r.state }}</span>
+        · {{ r.age }}
+        {% if r.state == 'running' %}<span class="hp-live-dot" title="live"></span>{% endif %}
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hp-empty">No runs with transcripts yet — a headless run writes one as it goes.</p>
+  {% endif %}
+
+</div><!-- /screen -->
+</div><!-- /nexus -->
+</body>
+</html>

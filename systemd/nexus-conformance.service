@@ -1,0 +1,9 @@
+[Unit]
+Description=Collect bounded fleet conformance evidence
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/nexus
+ExecStart=%h/nexus/.venv/bin/python %h/nexus/tools/collect_conformance.py
+NoNewPrivileges=true

@@ -1,0 +1,396 @@
+{%- import "_job_row.html" as jobrow -%}
+{%- import "_module_shell.html" as modules -%}
+{%- import "_app_shell.html" as app_shell -%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nexus</title>
+{{ app_shell.app_icons() }}
+<!-- ---- Installable PWA (iOS-first) ------------------------------------------
+     Manifest + SW are served BY THE APP (root scope, behind the same Access gate).
+     The iOS meta below is the priority: add-to-home-screen on iPhone/Safari opens
+     standalone with the Nexus-dark status bar + the Fleet-eye icon. -->
+<meta name="theme-color" content="#080d0f">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nexus">
+<!-- Shared Fleet-Nexus design system (tokens + search box + prose). The board
+     and every adopted route consume the same type and color contract. -->
+<link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+<!-- Touch T3: detail-partial styling for the phone bottom sheet (§8.1 recon).
+     Eager (not lazy-on-first-open) to avoid an unstyled flash on first tap;
+     both are .d-*/.hp-*/.seat-* namespaced, no collision with dashboard CSS. -->
+<link rel="stylesheet" href="/static/detail.css">
+<link rel="stylesheet" href="/static/herospath.css?v={{ herospath_css_v }}">
+<!-- Shared compact job-row component styling (disclosure rows) — same source
+     /jobs links, so the dashboard's jobs panel and the dedicated page never
+     diverge (FLEET-WORKER2-BUILD-20260721-panel-dashboard-compact-jobs). -->
+<link rel="stylesheet" href="/static/jobs.css">
+<link rel="stylesheet" href="/static/dashboard.css?v={{ dashboard_asset_v }}">
+</head>
+<body data-dashboard="true" class="nexus-app-body{% if cold_sheet %} cold-sheet{% endif %}">
+<div class="circuits"></div>
+<div class="ambient-tint {{ accent[snap.overall] if snap else 'unexposed' }}" id="ambientTint"></div>
+
+<div class="nexus">
+<div class="screen">
+
+{{ app_shell.dashboard_chrome("dashboard", snap, accent, unread,
+    snap.generated_at|central_header_stamp if snap else "—", true, system_status) }}
+
+<main>
+  {# ---- Per-seat availability strip: FREE/BUSY per relay seat ----------- #}
+  {# First paint is server-rendered from snap.seats; the client (SeatBoard)   #}
+  {# then live-ticks the ETA, ages finished tiles out at 15 min, and flips a   #}
+  {# tile instantly off the scan-log WebSocket. The no-JS render still stands. #}
+  {% set seatboard = snap.seats if snap else {} %}
+  {% set usage = namespace(tile=None) %}
+  {% if seatboard and seatboard.seats %}
+    {% for s in seatboard.seats %}
+      {% if s.usage_card %}{% set usage.tile = s %}{% endif %}
+    {% endfor %}
+  {% endif %}
+  <section class="model-usage-strip panel-reveal" id="modelUsageStrip" style="--i:0"
+           aria-labelledby="modelUsageHeading">
+    {% if usage.tile %}
+    <div class="model-usage-strip-head">
+      <div>
+        <h2 id="modelUsageHeading">model usage</h2>
+        <span>{{ usage.tile.sub }}</span>
+      </div>
+      <span class="model-usage-updated">{{ usage.tile.primary }}</span>
+      <a class="model-usage-more" href="/activity?tab=models">more →</a>
+    </div>
+    <div class="model-usage-grid">
+      <article class="model-route-summary">
+        <div class="model-panel-title"><span class="route-mark">◆</span><b>worker routing</b></div>
+        <div class="model-route-list">
+          {% for route in usage.tile.routing.candidates %}
+          <div class="model-route-line {{ 'selected' if route.selected else '' }}">
+            <span>{{ route.provider }}</span>
+            <b>{{ route.model }}</b>
+            <em class="state-{{ route.state|lower }}">{{ route.state }}</em>
+          </div>
+          {% endfor %}
+        </div>
+        {% set recommended = usage.tile.routing.worker %}
+        <p class="model-route-recommendation">recommended now · {{ recommended.model if recommended.ok else 'unavailable' }}</p>
+      </article>
+      {% for provider in usage.tile.provider_usage %}
+      <article class="model-provider-summary {{ provider.provider }}">
+        <div class="model-panel-title">
+          <span class="provider-mark"></span><b>{{ provider.label|lower }}</b>
+          <time>{% if provider.updated_ms %}{{ usage.tile.primary|replace('updated ', '') }}{% else %}unavailable{% endif %}</time>
+        </div>
+        {% for label, value in (('5 hour', provider.five_hour_used), ('weekly', provider.weekly_used)) %}
+        <div class="model-quota-line">
+          <span>{{ label }}</span>
+          {% if value is not none %}
+          <i><u style="width:{{ value }}%"></u></i>
+          <b>{{ '<1' if value > 0 and value < 1 else value|round|int }}%</b>
+          {% else %}
+          <em>unavailable</em>
+          {% endif %}
+        </div>
+        {% endfor %}
+        <p>{{ provider.source }}</p>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="model-usage-strip-head">
+      <div><h2 id="modelUsageHeading">model usage</h2><span>cloud quotas</span></div>
+      <span class="model-usage-updated">quota sources unavailable</span>
+      <a class="model-usage-more" href="/activity?tab=models">more →</a>
+    </div>
+    {% endif %}
+  </section>
+
+  <div class="seatstrip panel-reveal" id="seatstrip" style="--i:0">
+    {% if seatboard and seatboard.seats %}
+      {% for wanted in ('charlie', 'delta', 'alpha', 'localworker') %}
+      {% for s in seatboard.seats if s.seat == wanted %}
+      <article class="seat-tile {{ s.seat }} {{ 'busy' if s.state == 'running' else s.state }}{% if s.model_badge %} has-model{% endif %}"
+               data-seat="{{ s.seat }}">
+        <div class="seat-head">
+          <span class="seat-name">{{ s.label }}</span>
+          {% if s.sub %}<span class="seat-sub">{{ s.sub }}</span>{% endif %}
+        </div>
+        {% if s.model_badge %}
+        <span class="seat-model-badge {{ s.model_badge.family }}">
+          <span class="seat-model-logo" aria-hidden="true">{{ s.model_badge.mark }}</span>
+          <span class="seat-model-name">{{ s.model_badge.label }}</span>
+        </span>
+        {% endif %}
+        <div class="seat-primary">{{ s.primary }}{% if s.token %} · <a class="seat-tok-link" href="/activity/workers/{{ s.full_token }}"><span class="seat-tok">{{ s.token }}</span></a>{% endif %}</div>
+        {% if s.provider_line %}
+        <div class="seat-provider">{{ s.provider_line }}</div>
+        {% endif %}
+        {% if s.inline %}
+        <div class="seat-prog">
+          <div class="sp-bar"><i style="width:{{ s.inline.pct or 0 }}%"></i></div>
+          <div class="sp-legend">
+            <b>{{ s.inline.done }}/{{ s.inline.total }}</b>
+            <span class="sp-rate">{% if s.inline.label %}<span class="sp-label">{{ s.inline.label }}</span>{% endif %}{% if s.inline.rate %} · {{ s.inline.rate }} {{ s.inline.unit or '' }}{% endif %}</span>
+          </div>
+        </div>
+        {% endif %}
+        <span class="seat-badge">{{ s.badge }}</span>
+      </article>
+      {% endfor %}
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="contact panel-reveal" id="contact" style="--i:1">
+    {% if snap and snap.nodes %}
+      {% for node in snap.nodes %}
+      <article class="frame {{ accent[node.health] }}" id="node-{{ node.name|lower|replace(' ','-') }}">
+        <div class="frame-head">
+          <span class="node-name">{{ node.display_name or node.name }}</span>
+          <span class="chip {{ accent[node.health] }}">{{ node.health.value }}</span>
+        </div>
+        <ul class="probes">
+          {% for p in node.probes %}
+          <li class="probe">
+            <span class="dot {{ accent[p.health] }}"></span>
+            <span class="kind">{{ p.kind }}</span>
+            <span class="value">{{ p.value or '—' }}</span>
+            {% if p.detail %}<span class="detail">{{ p.detail }}</span>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </article>
+      {% endfor %}
+    {% else %}
+      <p class="empty">No signal yet — the first fleet rune is scanning.</p>
+    {% endif %}
+  </div>
+
+  {# ---- Status timeline: per-node health sparkline strip (T1-1, 2026-07-16) #}
+  {# /api/history already serves up to a week @ 5-min cadence with nothing   #}
+  {# rendering it — pure client fetch+render (see the script below); no      #}
+  {# server-side row markup needed, so node_meta is the only data this page  #}
+  {# hands the client (name + display label, same source as #contact above). #}
+  {% set node_meta = [] %}
+  {% if snap %}{% for n in snap.nodes %}{% set _ = node_meta.append({'name': n.name, 'label': n.display_name or n.name}) %}{% endfor %}{% endif %}
+
+  {% set work = snap.work if snap else {} %}
+
+  {% set state_accent = {'running':'developed','stalled':'safelight','failed':'overexposed','done':'developed','ended':'unexposed','unknown':'unexposed'} %}
+  <div class="jh-cols">
+  {# ---- Semantic index: nightly GPU reindex on charlie + both collections. #}
+  {# Replaces the retired Compendium tile. Unit receipt is a cached SSH probe #}
+  {# (app/semantic_index_watch.py); counts are a local index/vault.db read.   #}
+  {% set semantic_index_accent = {'GREEN':'developed','AMBER':'safelight','RED':'overexposed'} %}
+  {% set cx = semantic_index %}
+  {% set ca = semantic_index_accent.get(cx.health, 'unexposed') %}
+  {% call modules.module_shell("semantic index", "jh-semantic-index", none, "jh-module-fit") %}
+    {% if cx.no_receipt %}
+    <p class="empty">no receipt — {{ cx.detail }}</p>
+    {% else %}
+    <div class="cx-status">
+      <span class="chip {{ ca }}">{{ cx.health }}</span>
+      <span class="cx-age">{{ cx.last_run_utc }} UTC on {{ cx.host }} · {{ '%.1f'|format(cx.age_hours) }}h ago</span>
+    </div>
+    <ul class="cx-fields">
+      <li><span class="kind">markdown docs</span><span class="value">{{ '{:,}'.format(cx.markdown_docs) if cx.markdown_docs is not none else '—' }}</span></li>
+      <li><span class="kind">markdown chunks</span><span class="value">{{ '{:,}'.format(cx.markdown_chunks) if cx.markdown_chunks is not none else '—' }}</span></li>
+      <li><span class="kind">transcript docs</span><span class="value">{{ '{:,}'.format(cx.transcript_docs) if cx.transcript_docs is not none else '—' }}</span></li>
+      <li><span class="kind">transcript chunks</span><span class="value">{{ '{:,}'.format(cx.transcript_chunks) if cx.transcript_chunks is not none else '—' }}</span></li>
+      <li><span class="kind">reindex rc</span><span class="value">{{ cx.reindex_rc if cx.reindex_rc is not none else '—' }}</span></li>
+      <li><span class="kind">unit</span><span class="value">{{ cx.result }}/{{ cx.exec_status }}</span></li>
+      <li><span class="kind">db published</span><span class="value">{{ cx.published_at or '—' }}</span></li>
+    </ul>
+    {% if cx.detail %}<p class="empty">{{ cx.detail }}</p>{% endif %}
+    {% endif %}
+  {% endcall %}
+  {% call modules.module_shell("worker activity", "jh-path", "/activity?tab=workers", "jh-module-fit", body_id="relaycol") %}
+    <ul class="worklist">
+      {% if work.relay_runs %}{% for r in work.relay_runs['runs'][:WORKER_ACTIVITY_PANEL_MAX] %}
+      <li><span class="wl-title"><a class="wl-link" href="/activity/workers/{{ r.token }}">{{ r.token }}</a></span>
+        <span class="wl-sub"><span class="wl-seat">{{ r.seat }}</span>
+          <span class="state-{{ r.state }}">{{ r.state }}</span> · {{ r.age }}</span></li>
+      {% endfor %}{% endif %}
+    </ul>
+    {% if not (work.relay_runs and work.relay_runs['runs']) %}<p class="empty">No relay runs yet.</p>{% endif %}
+  {% endcall %}
+  {# ---- Jobs Activity: pull-model heartbeat work (any job, any box). ------ #}
+  {% call modules.module_shell("jobs activity", "jh-jobs", "/activity?tab=jobs") %}
+  <div class="jobs-list panel-reveal" id="jobstable" style="--i:3">
+    {% if work.jobs %}
+      {% for gj in jobs_ordered[:JOBS_PANEL_MAX] %}
+      {% set ga = state_accent.get(gj.state, 'unexposed') %}
+      {{ jobrow.job_row(gj, ga, show_markdone=True) }}
+      {% endfor %}
+    {% else %}
+      <p class="empty">No job heartbeats — drop a <code>heartbeats/&lt;job&gt;.json</code> and it appears here.</p>
+    {% endif %}
+  </div>
+  {% endcall %}
+  </div>
+
+  {# ---- Fleet Activity: compact dashboard projections of the full          #}
+  {# /activity Overview and Models views. One cached aggregate fetch feeds   #}
+  {# both modules through the central 60-second dashboard subcadence.         #}
+  <div class="activity-dashboard-grid panel-reveal" id="activityModules" style="--i:3">
+    {% call modules.module_shell("commit activity", "activity-dash-module", "/activity", "jh-scroll dash-activity-body", "fleetOverviewModule", "polite") %}
+      <p class="empty">scanning activity…</p>
+    {% endcall %}
+    {% call modules.module_shell("model activity", "activity-dash-module", "/activity?tab=models", "jh-scroll dash-activity-body", "modelActivityModule", "polite") %}
+      <p class="empty">scanning activity…</p>
+    {% endcall %}
+  </div>
+
+  {# ---- Fleet Operations: the four read-only operational destinations use #}
+  {# the exact module shell/body height as Activity. Evidence-heavy lenses   #}
+  {# may scroll; Health uses a fitted dashboard projection with no nested     #}
+  {# scrolling. All modules expand naturally on narrow screens.              #}
+  <div class="operations-dashboard-grid panel-reveal" id="operationsModules" style="--i:3">
+    {% call modules.module_shell("indexes", "ops-module ops-control-plane", "/operations?tab=indexes", "jh-scroll ops-module-body") %}
+      {% if control_plane and control_plane.available %}
+      <div class="control-plane-card">
+        {% for card in control_plane.cards %}
+        <a class="control-plane-chip" href="/operations?tab=indexes#{{ card.id }}">
+          <span class="badge {{ card.status }}">{{ card.status }}</span>
+          <strong>{{ card.title }}</strong>
+          <small>{{ card.summary }}</small>
+        </a>
+        {% endfor %}
+      </div>
+      <div class="control-plane-foot">Scanned {{ control_plane.generated_at_central }}{% if control_plane.is_stale %} · stale{% endif %}</div>
+      {% else %}<p class="empty">indexes cache unavailable</p>{% endif %}
+    {% endcall %}
+
+    {% call modules.module_shell("watchdogs", "ops-module ops-watchdogs", "/operations?tab=watchdogs", "jh-scroll ops-module-body") %}
+      {% if watchdogs and watchdogs.hosts %}
+      <div class="watchdog-summary-lead">
+        <strong>{{ watchdogs.total }}</strong>
+        <span>registered mechanisms</span>
+      </div>
+      <ul class="watchdog-summary-list">
+        {% for host in watchdogs.hosts %}
+        <li>
+          <span class="watchdog-host">{{ host.host }}</span>
+          <span class="watchdog-count">{{ host.count }} mechanism{{ 's' if host.count != 1 else '' }}</span>
+          <span class="watchdog-flagged {{ 'has-flags' if host.flagged else '' }}">{{ host.flagged }} flagged</span>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="watchdog-summary-note">Point-in-time inventory · expand the full page for mechanism evidence.</p>
+      {% else %}<p class="empty">watchdog registry unavailable</p>{% endif %}
+    {% endcall %}
+
+    {% call modules.module_shell("health", "ops-module ops-health", "/operations?tab=health", "jh-module-fit ops-module-body", "healthModule", "polite") %}
+      <div class="ht-summary" id="timelineSummary">
+        <p class="empty">scanning history…</p>
+      </div>
+      <div class="timeline-strip" id="timelineStrip">
+        <p class="empty">scanning history…</p>
+      </div>
+    {% endcall %}
+
+    {% call modules.module_shell("conformance", "ops-module ops-conformance", "/operations?tab=conformance", "jh-scroll ops-module-body") %}
+      {% if conformance and conformance.available %}
+      <div class="conformance-summary-card">
+        <div class="conformance-summary-header">
+          <span class="badge {{ conformance.overall }}">{{ conformance.overall }}</span>
+          <strong class="conformance-headline">{{ conformance.outcome_headline }}</strong>
+          {% if conformance.non_ok_count > 0 %}
+          <span class="conformance-breakdown">({{ conformance.counts.warning }} warning · {{ conformance.counts.error }} error{% if conformance.counts.unknown > 0 %} · {{ conformance.counts.unknown }} unknown{% endif %})</span>
+          {% endif %}
+        </div>
+        <div class="conformance-chips-grid">
+          {% for cat in conformance.categories %}
+          <div class="conformance-chip {% if cat.non_ok_count > 0 %}has-issues{% endif %}">
+            <span class="chip-title"><span class="chip-title-full">{{ cat.title }}</span><span class="chip-title-short">{{ cat.short_title }}</span></span>
+            <span class="chip-count">{{ cat.ok_count }}/{{ cat.count }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% if conformance.stability and conformance.stability.consecutive_scans > 0 %}
+        <p class="conformance-stability">
+          Stable at <strong>{{ conformance.stability.current_state }}</strong> for
+          {% if conformance.stability.at_least_qualifier %}at least {% endif %}{{ conformance.stability.consecutive_scans }} scan{{ "s" if conformance.stability.consecutive_scans != 1 else "" }}
+        </p>
+        {% endif %}
+        <div class="conformance-summary-footer">
+          <span class="freshness-time">Scanned {{ conformance.generated_at_central }} Central ({{ conformance.scan_duration }}s)</span>
+          {% if conformance.is_stale %}
+          <span class="badge warning">stale (scan delayed)</span>
+          {% else %}
+          <span class="badge ok">fresh</span>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}<p class="empty">conformance cache unavailable</p>{% endif %}
+    {% endcall %}
+  </div>
+
+  <div class="console">
+    <span class="schedule" id="schedule">
+      {% if jobs %}next scan <b>{{ jobs[0].next_run or 'pending' }}</b>{% endif %}
+    </span>
+  </div>
+</main>
+
+</div><!-- /screen -->
+</div><!-- /nexus -->
+
+{# ---- Touch T3: bottom-sheet shell (phone only) --------------------------- #}
+{# Direct child of <body>, sibling to .nexus — deliberately OUTSIDE #contact/  #}
+{# #jobstable/#relaycol/#warnticker/#seatstrip, these refreshable #}
+{# containers refresh()/SeatBoard update every 15s (recon §2/§8.2).          #}
+{# so the live-poll cycle can never clobber an open sheet. CSS-gated to phone   #}
+{# widths only (see @media max-width:640px above); a JS matchMedia bail keeps   #}
+{# desktop/iPad from ever opening it via a CARD TAP. Content is injected from   #}
+{# the SAME ?partial=1 fragment the standalone detail pages already render —    #}
+{# no new render path, single-source (recon §3/§7). Touch T3.5: a cold/direct
+   hit on a detail route pre-renders that route's fragment into #sheetBody
+   below and pre-marks both .open (see routes.py's _cold_sheet_response);
+   body.cold-sheet (see <body> above) is what makes the sheet visible at ALL
+   widths instead of phone-only, with a centered modal above 640px (see the
+   cold-sheet CSS block in detail.css). #}
+<div class="sheet-backdrop{% if cold_sheet %} open{% endif %}" id="sheetBackdrop"></div>
+<div class="sheet{% if cold_sheet %} open{% endif %}" id="sheet" role="dialog" aria-modal="true" aria-hidden="{{ 'false' if cold_sheet else 'true' }}" aria-label="Detail">
+  <div class="sheet-handle" id="sheetHandle"><span class="sheet-grip"></span></div>
+  <button type="button" class="sheet-close" id="sheetClose" aria-label="Close">✕</button>
+  <div class="sheet-body" id="sheetBody">{% if cold_sheet %}{{ cold_sheet_html | safe }}{% endif %}</div>
+</div>
+{% if cold_sheet %}
+<script>
+// Touch T3.5: history synth — a cold hit on a detail route arrives with no
+// history stack at all (it's the very first navigation), so the T3 close
+// path (history.back(), used by the sheet's ✕/backdrop/drag — see the T3
+// sheet-controller script below) has nothing to pop TO. Synthesize a
+// [/, route] stack: replace the current (cold) entry with "/" — the
+// dashboard now sitting rendered behind the sheet — then push the route on
+// top of it. Back/✕/backdrop then pop to "/"; the T3 popstate handler (which
+// runs unconditionally, not gated to phone) sees a non-detail path and
+// closes the sheet, revealing the already-rendered dashboard — no reload.
+(function(){
+  "use strict";
+  try{
+    history.replaceState(null, "", "/");
+    history.pushState(null, "", {{ cold_sheet_route | tojson }});
+  }catch(e){}
+})();
+</script>
+{% endif %}
+{% set _nexus_bootstrap = {
+  "nodeMeta": node_meta,
+  "jobStaleSeconds": (job_stale_seconds if job_stale_seconds else 900),
+  "workerActivityPanelMax": WORKER_ACTIVITY_PANEL_MAX,
+  "seatInit": (snap.seats if snap else {}),
+  "serverNewestTs": (newest_event_ts or "")
+} %}
+<script>
+window.__NEXUS_BOOTSTRAP__ = {{ _nexus_bootstrap | tojson }};
+</script>
+<script src="/static/dashboard.js?v={{ dashboard_asset_v }}-2"></script>
+</body>
+</html>

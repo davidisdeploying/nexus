@@ -1,0 +1,112 @@
+{% import "_app_shell.html" as app_shell %}
+{% if not partial %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ token }} · run detail</title>
+{{ app_shell.app_icons() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+<link rel="stylesheet" href="/static/herospath.css?v={{ herospath_css_v }}">
+<link rel="stylesheet" href="/static/detail.css">
+</head>
+<body class="wiki-body">
+<div class="circuits"></div>
+<div class="nexus">
+<div class="screen">
+
+  <div class="wiki-head">
+    <a class="eye" href="/" title="Fleet board">
+      {{ app_shell.nexus_eye() }}
+    </a>
+    <a class="brand" href="/activity?tab=workers">
+      <h1>{{ token }}</h1>
+    </a>
+    <div class="tools">
+      <a class="navlink" href="/activity/workers/{{ token }}">full transcript</a>
+      <a class="navlink" href="/">board</a>
+    </div>
+  </div>
+
+  {% if found %}
+  <div class="d-anchornav">
+    <a href="#gate">gate</a>
+    <a href="#log">log</a>
+    <a href="#collision">collision</a>
+  </div>
+  {% endif %}
+{% endif %}
+
+  <div class="detail-partial" id="detail-run">
+  {% if not found %}
+    <div class="d-section">
+      <div class="d-empty">no run dir for <code class="d-mono">{{ token }}</code> under any seat's from-&lt;seat&gt;/runs/.</div>
+    </div>
+  {% else %}
+
+    <div class="d-section" id="gate">
+      <div class="d-section-title">gate — sentinel &amp; identity</div>
+      <p style="margin:0 0 12px">
+        {% if state == 'running' %}<span class="d-chip developed">running</span>
+        {% elif state == 'done' %}<span class="d-chip developed">done</span>
+        {% else %}<span class="d-chip overexposed">died</span>{% endif %}
+        <span class="hp-seat {{ seat_class }}" style="margin-left:8px">{{ seat }}</span>
+        <span style="margin-left:8px; color:var(--ink-dim)">{{ age }}</span>
+      </p>
+      <dl class="d-kv">
+        <dt>token</dt><dd class="d-mono">{{ token }}</dd>
+        <dt>seat</dt><dd>{{ seat }}</dd>
+        <dt>kind</dt><dd>{{ kind or '—' }}</dd>
+        <dt>slug</dt><dd>{{ slug }}</dd>
+        <dt>date</dt><dd>{{ date or '—' }}</dd>
+        <dt>lane</dt><dd>{{ lane or '—' }}</dd>
+        <dt>started</dt><dd>{{ started_str or '—' }}</dd>
+        <dt>ended</dt><dd>{{ ended_str or '—' }}</dd>
+        <dt>duration</dt><dd>{{ duration_str or '—' }}</dd>
+        <dt>exit code</dt><dd>{% if exit_code is not none %}<code>{{ exit_code if exit_code else '0' }}</code>{% else %}— (no sentinel yet){% endif %}</dd>
+        <dt>staged prompt</dt><dd>{% if has_prompt %}<a class="navlink" href="/approve/{{ token }}" style="display:inline-block">view / approve</a>{% else %}not on disk{% endif %}</dd>
+      </dl>
+    </div>
+
+    <div class="d-section" id="log">
+      <div class="d-section-title">log — transcript tail</div>
+      {% if has_transcript %}
+        {% if tail_truncated > 0 %}
+        <p style="font-size:12px; color:var(--ink-dim); margin:0 0 10px">
+          showing last {{ tail_shown }} of {{ tail_total }} records ·
+          <a class="navlink" href="/activity/workers/{{ token }}" style="display:inline-block">open full scroll</a>
+        </p>
+        {% endif %}
+        <div class="hp-scroll" style="max-height:520px; overflow-y:auto; border:1px solid var(--line); border-radius:8px">
+          {{ tail_html|safe }}
+        </div>
+      {% else %}
+        <div class="d-empty">no transcript for this token yet (headless runs stream one as they go).</div>
+      {% endif %}
+    </div>
+
+    <div class="d-section" id="collision">
+      <div class="d-section-title">collision — sync-conflict forks</div>
+      {% if conflicts %}
+        <p class="d-conflict" style="margin:0">{{ conflicts|length }} conflicted file(s) in this run dir — a concurrent seat write forked it.</p>
+        <ul class="d-conflict-list">
+          {% for c in conflicts %}<li class="d-mono">{{ c }}</li>{% endfor %}
+        </ul>
+      {% else %}
+        <div class="d-empty">none — this run dir has a single writer.</div>
+      {% endif %}
+    </div>
+
+  {% endif %}
+  </div>
+
+{% if not partial %}
+</div><!-- /screen -->
+</div><!-- /nexus -->
+</body>
+</html>
+{% endif %}

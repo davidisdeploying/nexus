@@ -1,0 +1,13 @@
+[Unit]
+Description=Refresh unified model usage for Nexus
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=5m
+RandomizedDelaySec=30
+AccuracySec=15s
+Persistent=true
+Unit=nexus-model-usage.service
+
+[Install]
+WantedBy=timers.target

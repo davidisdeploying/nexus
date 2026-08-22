@@ -1,0 +1,162 @@
+{% import "_app_shell.html" as app_shell %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{ token }} · worker activity</title>
+{{ app_shell.app_icons() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+<link rel="stylesheet" href="/static/herospath.css?v={{ herospath_css_v }}">
+</head>
+<body class="wiki-body nexus-app-body">
+<div class="scroll-progress" aria-hidden="true"></div>
+<div class="circuits"></div>
+<div class="nexus nexus-app-frame">
+<div class="screen">
+
+  {{ app_shell.dashboard_chrome("activity", chrome_snap, chrome_accent, chrome_unread, chrome_stamp, false, chrome_system_status) }}
+  <main class="nexus-page-content nexus-transcript-content">
+  {{ app_shell.content_header("worker activity", token) }}
+
+  <div class="crumb"><a href="/activity">activity</a> / <a href="/activity?tab=workers">worker activity</a> / {{ token }}</div>
+
+  <div class="hp-meta-bar">
+    <span class="hp-seat {{ seat_class }}">{{ seat }}</span>
+    <span class="hp-state-{{ state }}">{{ state }}</span>
+    {% if is_running %}<span class="hp-live-dot" title="live-tailing"></span><span id="hp-live-word">live</span>{% endif %}
+    <span style="margin-left:auto">showing {{ shown }} of {{ total }} records</span>
+  </div>
+
+  {% if truncated_head > 0 and not showing_all %}
+  <a class="hp-loadearlier" href="/activity/workers/{{ token }}?limit=all">↑ load {{ truncated_head }} earlier records</a>
+  {% endif %}
+
+  <div class="hp-scroll" id="hp-scroll">
+    {{ events_html|safe }}
+  </div>
+
+  </main>
+
+</div><!-- /screen -->
+</div><!-- /nexus -->
+
+<a class="hp-board" id="hp-board" href="/activity?tab=workers" title="All worker activity">all runs</a>
+<button class="hp-jump" id="hp-jump">↓ jump to live</button>
+
+<script src="/static/app_shell.js?v={{ shell_asset_v }}" defer></script>
+<script>
+(function(){
+  var scroll = document.getElementById('hp-scroll');
+  var jump = document.getElementById('hp-jump');
+  var isRunning = {{ 'true' if is_running else 'false' }};
+  var token = {{ token|tojson }};
+  var fromOffset = {{ size }};
+
+  // Hard cap on transcript event/message DOM nodes kept in #hp-scroll at any
+  // time. The transcript FILE stays complete server-side — this only bounds
+  // what the browser has to keep painted/laid-out, so an old multi-thousand
+  // -event session (or an hours-long live tail) can't grow the DOM forever.
+  var MAX_EVENTS = 500;
+  var omittedCount = 0;
+  var noticeEl = null;
+
+  function ensureNotice(){
+    if (noticeEl) return noticeEl;
+    noticeEl = document.createElement('div');
+    noticeEl.className = 'hp-omitted-notice';
+    noticeEl.setAttribute('role', 'status');
+    noticeEl.style.display = 'none';
+    scroll.insertBefore(noticeEl, scroll.firstChild);
+    return noticeEl;
+  }
+
+  function updateNotice(){
+    var el = ensureNotice();
+    if (omittedCount > 0){
+      el.textContent = omittedCount.toLocaleString() + ' earlier event' +
+        (omittedCount === 1 ? '' : 's') +
+        ' omitted from this view (still recorded in the full transcript).';
+      el.style.display = '';
+    }
+  }
+
+  // Evict oldest event rows down to MAX_EVENTS. Rows are dropped, not kept —
+  // no array/map holds on to the removed nodes. Returns the pixel height
+  // removed so callers can compensate scroll position.
+  function trimToCap(){
+    var rows = scroll.querySelectorAll(':scope > .hp-row');
+    var excess = rows.length - MAX_EVENTS;
+    if (excess <= 0) return 0;
+    var removedHeight = 0;
+    for (var i = 0; i < excess; i++){
+      var row = rows[i];
+      removedHeight += row.offsetHeight;
+      row.parentNode.removeChild(row);
+    }
+    omittedCount += excess;
+    updateNotice();
+    return removedHeight;
+  }
+
+  // Prune before first paint settles / before any interaction — an old large
+  // session opened with ?limit=all never keeps more than MAX_EVENTS live.
+  trimToCap();
+
+  // Start pinned to the newest record (bottom of the scroll).
+  window.scrollTo(0, document.body.scrollHeight);
+
+  // "At bottom" within a small threshold — governs auto-follow.
+  function nearBottom(){
+    return (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - 120);
+  }
+  function refreshJump(){
+    if (nearBottom()) jump.classList.remove('show');
+    else jump.classList.add('show');
+  }
+  window.addEventListener('scroll', refreshJump, {passive:true});
+  jump.addEventListener('click', function(){
+    window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'});
+  });
+
+  if (!isRunning) return;  // finished run renders static — no tail.
+
+  var proto = (location.protocol === 'https:') ? 'wss:' : 'ws:';
+  var url = proto + '//' + location.host + '/activity/workers/ws?token='
+            + encodeURIComponent(token) + '&from=' + fromOffset;
+  var ws;
+  try { ws = new WebSocket(url); } catch(e){ return; }
+
+  ws.onmessage = function(ev){
+    var msg;
+    try { msg = JSON.parse(ev.data); } catch(e){ return; }
+    if (msg.type === 'events' && msg.html){
+      var follow = nearBottom();
+      var prevScrollY = window.scrollY;
+      scroll.insertAdjacentHTML('beforeend', msg.html);
+      var removedHeight = trimToCap();
+      if (follow){
+        window.scrollTo(0, document.body.scrollHeight);
+      } else {
+        // Oldest rows evicted above the fold shift everything up by
+        // removedHeight — compensate so the scrolled-up reader's view
+        // doesn't jump.
+        if (removedHeight > 0) window.scrollTo(0, Math.max(0, prevScrollY - removedHeight));
+        refreshJump();
+      }
+    } else if (msg.type === 'end'){
+      var w = document.getElementById('hp-live-word');
+      if (w) w.textContent = 'complete';
+      var dot = document.querySelector('.hp-meta-bar .hp-live-dot');
+      if (dot) dot.style.display = 'none';
+      try { ws.close(); } catch(e){}
+    }
+  };
+  ws.onerror = function(){ /* gate close / drop — leave static view intact */ };
+})();
+</script>
+</body>
+</html>
