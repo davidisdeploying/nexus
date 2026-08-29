@@ -1,0 +1,347 @@
+{
+  "version": 2,
+  "manifest_revision": "CONFORMANCE-POLICY-2026-08-24.1",
+  "categories": [
+    {
+      "key": "agents",
+      "title": "Operating contract (agents)",
+      "short_title": "Contract",
+      "description": "Verification of bounded agent contract hashes across target hosts."
+    },
+    {
+      "key": "ssh",
+      "title": "Worker access (ssh)",
+      "short_title": "SSH",
+      "description": "Direct inter-host SSH accessibility and credential health."
+    },
+    {
+      "key": "service",
+      "title": "Required services (service)",
+      "short_title": "Services",
+      "description": "Required systemd services and timers, including live and startup state."
+    },
+    {
+      "key": "path",
+      "title": "Required files (path)",
+      "short_title": "Files",
+      "description": "Presence of critical configuration files and manifests."
+    },
+    {
+      "key": "receipts",
+      "title": "Automation receipts (receipts)",
+      "short_title": "Receipts",
+      "description": "Structured bounded success receipts for scheduled fleet work."
+    },
+    {
+      "key": "fresh",
+      "title": "Snapshot freshness (fresh)",
+      "short_title": "Snapshots",
+      "description": "Age verification for control-plane backup archives."
+    },
+    {
+      "key": "mirror",
+      "title": "Vault mirror (mirror)",
+      "short_title": "Mirror",
+      "description": "Git HEAD alignment between the live Vault corpus and its off-host mirror."
+    },
+    {
+      "key": "governance",
+      "title": "Control plane (governance)",
+      "short_title": "Governance",
+      "description": "The five central indexes and their authoritative parity, routing, lint, and adoption validators."
+    }
+  ],
+  "hosts": [
+    "alpha",
+    "charlie",
+    "delta",
+    "macbook"
+  ],
+  "informational_hosts": [
+    "macbook"
+  ],
+  "agent_contract": {
+    "linux_path": "/home/david/AGENTS.md",
+    "macbook_path": "/Users/davidgomez/AGENTS.md"
+  },
+  "ssh_edges": [
+    [
+      "alpha",
+      "charlie"
+    ],
+    [
+      "alpha",
+      "delta"
+    ],
+    [
+      "alpha",
+      "macbook"
+    ],
+    [
+      "charlie",
+      "alpha"
+    ],
+    [
+      "charlie",
+      "delta"
+    ],
+    [
+      "charlie",
+      "macbook"
+    ],
+    [
+      "delta",
+      "alpha"
+    ],
+    [
+      "delta",
+      "charlie"
+    ],
+    [
+      "delta",
+      "macbook"
+    ]
+  ],
+  "user_units": [
+    [
+      "alpha",
+      "tower.service",
+      "active"
+    ],
+    [
+      "alpha",
+      "nexus.service",
+      "active"
+    ],
+    [
+      "alpha",
+      "compendium-ota.service",
+      "active"
+    ],
+    [
+      "alpha",
+      "nexus-model-usage.timer",
+      "active"
+    ],
+    [
+      "alpha",
+      "nexus-activity.timer",
+      "active"
+    ],
+    [
+      "alpha",
+      "fleet-vault-lint.timer",
+      "active"
+    ],
+    [
+      "alpha",
+      "fleet-vault-git-commit.timer",
+      "active"
+    ],
+    [
+      "alpha",
+      "tower-control-plane-backup.timer",
+      "active"
+    ],
+    [
+      "alpha",
+      "fleet-git-push.timer",
+      "active"
+    ],
+    [
+      "charlie",
+      "fleet-git-push.timer",
+      "active"
+    ],
+    [
+      "alpha",
+      "fleet-memory-export.timer",
+      "active"
+    ],
+    [
+      "charlie",
+      "fleet-memory-export.timer",
+      "active"
+    ],
+    [
+      "delta",
+      "fleet-memory-export.timer",
+      "active"
+    ],
+    [
+      "alpha",
+      "nexus-conformance.timer",
+      "active"
+    ]
+  ],
+  "enablement_units": [
+    [
+      "alpha",
+      "tower.service"
+    ],
+    [
+      "alpha",
+      "nexus.service"
+    ],
+    [
+      "alpha",
+      "compendium-ota.service"
+    ],
+    [
+      "alpha",
+      "nexus-model-usage.timer"
+    ],
+    [
+      "alpha",
+      "nexus-activity.timer"
+    ],
+    [
+      "alpha",
+      "fleet-vault-lint.timer"
+    ],
+    [
+      "alpha",
+      "fleet-vault-git-commit.timer"
+    ],
+    [
+      "alpha",
+      "tower-control-plane-backup.timer"
+    ],
+    [
+      "alpha",
+      "fleet-git-push.timer"
+    ],
+    [
+      "charlie",
+      "fleet-git-push.timer"
+    ],
+    [
+      "alpha",
+      "fleet-memory-export.timer"
+    ],
+    [
+      "charlie",
+      "fleet-memory-export.timer"
+    ],
+    [
+      "delta",
+      "fleet-memory-export.timer"
+    ],
+    [
+      "alpha",
+      "nexus-conformance.timer"
+    ]
+  ],
+  "required_paths": [
+    [
+      "alpha",
+      "/home/david/.config/systemd/user/compendium-ota.service",
+      "file"
+    ],
+    [
+      "alpha",
+      "/home/david/compendium-ota-server.py",
+      "file"
+    ],
+    [
+      "alpha",
+      "/home/david/compendium-ota",
+      "dir"
+    ],
+    [
+      "alpha",
+      "/home/david/compendium-ota/manifest.plist",
+      "file"
+    ],
+    [
+      "alpha",
+      "/home/david/compendium-ota/CompendiumBridge.ipa",
+      "file"
+    ],
+    [
+      "alpha",
+      "/home/david/.config/fleet/fleet-git-repos.json",
+      "file"
+    ],
+    [
+      "charlie",
+      "/home/david/.config/fleet/fleet-git-repos.json",
+      "file"
+    ],
+    [
+      "delta",
+      "/home/david/.config/fleet/fleet-git-repos.json",
+      "file"
+    ],
+    [
+      "alpha",
+      "/home/david/Vaults/homelab-vault/tools/bin/control_plane_offhost_sync.py",
+      "file"
+    ],
+    [
+      "charlie",
+      "/home/david/Vaults/homelab-vault/tools/bin/control_plane_offhost_sync.py",
+      "file"
+    ],
+    [
+      "alpha",
+      "/home/david/tower/scripts/control_plane_offhost_sync.py",
+      "symlink:/home/david/Vaults/homelab-vault/tools/bin/control_plane_offhost_sync.py"
+    ],
+    [
+      "charlie",
+      "/home/david/.local/bin/control_plane_offhost_sync.py",
+      "symlink:/home/david/Vaults/homelab-vault/tools/bin/control_plane_offhost_sync.py"
+    ],
+    [
+      "alpha",
+      "/home/david/Vaults/homelab-vault/tools/bin/control_plane_offhost_sync.py",
+      "python-compiles"
+    ],
+    [
+      "charlie",
+      "/home/david/Vaults/homelab-vault/tools/bin/control_plane_offhost_sync.py",
+      "python-compiles"
+    ]
+  ],
+  "fresh_paths": [
+    [
+      "alpha",
+      "/home/david/FleetDatabaseBackups/alpha-snapshots/latest",
+      93600
+    ],
+    [
+      "delta",
+      "/home/david/FleetDatabaseBackups/alpha-snapshots/latest",
+      93600
+    ],
+    [
+      "charlie",
+      "/home/david/FleetDatabaseBackups/charlie-snapshots/latest",
+      93600
+    ],
+    [
+      "delta",
+      "/home/david/FleetDatabaseBackups/charlie-snapshots/latest",
+      93600
+    ]
+  ],
+  "git_mirrors": [
+    [
+      "alpha",
+      "/home/david/Vaults",
+      "delta",
+      "/home/david/vaults-mirror.git"
+    ]
+  ],
+  "git_push_receipts": [
+    [
+      "alpha",
+      "/home/david/.local/state/fleet/fleet-git-push/latest.json"
+    ],
+    [
+      "charlie",
+      "/home/david/.local/state/fleet/fleet-git-push/latest.json"
+    ]
+  ]
+}

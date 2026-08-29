@@ -1,0 +1,49 @@
+{%- import "_job_row.html" as jobrow -%}
+{%- import "_app_shell.html" as app_shell -%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jobs · Nexus</title>
+{{ app_shell.app_icons() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+<link rel="stylesheet" href="/static/jobs.css">
+</head>
+<body class="wiki-body">
+<div class="circuits"></div>
+<div class="nexus">
+<div class="screen">
+
+  <div class="wiki-head">
+    <a class="eye" href="/" title="Fleet board">
+      {{ app_shell.nexus_eye() }}
+    </a>
+    <a class="brand" href="/jobs">
+      <h1>jobs</h1>
+    </a>
+    <div class="tools">
+      <a class="navlink" href="/">board</a>
+    </div>
+  </div>
+
+  <div class="crumb">current and past jobs</div>
+
+  {% if jobs %}
+  <div class="jobs-list">
+    {% for gj in jobs %}
+    {% set ga = state_accent.get(gj.state, 'unexposed') %}
+    {{ jobrow.job_row(gj, ga) }}
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">No job heartbeats — drop a <code>heartbeats/&lt;job&gt;.json</code> and it appears here.</p>
+  {% endif %}
+
+</div><!-- /screen -->
+</div><!-- /nexus -->
+</body>
+</html>

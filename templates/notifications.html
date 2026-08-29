@@ -1,0 +1,101 @@
+{% import "_app_shell.html" as app_shell %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>notifications · Nexus</title>
+  {{ app_shell.app_icons() }}
+  <meta name="theme-color" content="#080d0f">
+  <link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+  <link rel="stylesheet" href="/static/notifications.css?v={{ notifications_asset_v }}">
+</head>
+<body class="nexus-app-body">
+  <div class="circuits"></div>
+  <div class="nexus nexus-app-frame"><div class="screen">
+  {{ app_shell.dashboard_chrome("notifications", chrome_snap, chrome_accent, chrome_unread, chrome_stamp, false, chrome_system_status) }}
+  <main class="notifications-shell nexus-page-content">
+    {% set current_tab = initial_tab if initial_tab == 'preferences' else 'inbox' %}
+    {% set notification_status = (chrome_unread|string) ~ " unread · " ~ (count|string) ~ " recent" %}
+    {% if current_tab == 'preferences' %}{% set notification_status = "delivery and device preferences" %}{% endif %}
+    {{ app_shell.notifications_header(groups, initial_group, current_tab, notification_status, "notificationStatus", chrome_unread) }}
+
+    {% if current_tab == 'inbox' %}
+    <section class="notification-inbox">
+      <div class="notification-groups">
+        {% for group in groups %}
+        <section class="notification-group" id="notification-group-{{ group.key }}"
+                 role="tabpanel" aria-labelledby="notification-group-tab-{{ group.key }}"
+                 data-notification-panel="{{ group.key }}"{% if group.key != initial_group %} hidden{% endif %}>
+          <header class="notification-group-heading">
+            <p>{{ group.description }}</p>
+            <span class="notification-group-count">
+              {{ group.count }} {{ 'event' if group.count == 1 else 'events' }}
+              {% if group.unread_count %}<strong class="notification-group-unread">{{ group.unread_count }} new</strong>{% endif %}
+            </span>
+          </header>
+          {% if group["items"] %}
+          <ol class="notification-list">
+            {% for r in group["items"] %}
+            <li class="notification-item{% if r.unread %} is-unread{% endif %}" data-tone="{{ r.tone }}">
+              {% if r.navigate %}<a class="notification-item-main" href="{{ r.navigate }}{{ '&' if '?' in r.navigate else '?' }}nf=1">{% else %}<div class="notification-item-main">{% endif %}
+                <span class="notification-signal" aria-hidden="true">{% if r.emoji %}{{ r.emoji }}{% else %}◆{% endif %}</span>
+                <span class="notification-copy">
+                  <span class="notification-title{% if r.unread %} unread{% endif %}">{{ r.friendly_title }}</span>
+                  {% if r.friendly_body %}<span class="notification-body">{{ r.friendly_body }}</span>{% endif %}
+                  <span class="notification-meta">
+                    <span>{{ r.category_label }}</span><span>{{ r.source_label }}</span><time datetime="{{ r.created_at }}">{{ r.created_label }}</time>
+                  </span>
+                </span>
+                {% if r.navigate %}<span class="notification-open" aria-hidden="true">→</span>{% endif %}
+              {% if r.navigate %}</a>{% else %}</div>{% endif %}
+              <details class="notification-details">
+                <summary>Event details</summary>
+                <dl>
+                  <div><dt>Recorded</dt><dd>{{ r.created_exact }}</dd></div>
+                  <div><dt>Status</dt><dd>{{ 'Unread' if r.unread else 'Read ' ~ r.read_label|lower }}</dd></div>
+                  <div><dt>Channel</dt><dd>{{ r.channel }} · priority {{ r.prio }}</dd></div>
+                  {% if r.event_key %}<div><dt>Event ID</dt><dd><code>{{ r.event_key }}</code></dd></div>{% endif %}
+                  {% if r.title and r.title != r.friendly_title %}<div><dt>Original title</dt><dd><code>{{ r.title }}</code></dd></div>{% endif %}
+                  {% if r.body and r.body != r.friendly_body %}<div><dt>Original evidence</dt><dd><code>{{ r.body }}</code></dd></div>{% endif %}
+                </dl>
+              </details>
+            </li>
+            {% endfor %}
+          </ol>
+          {% else %}
+          <div class="notification-empty">
+            <strong>All quiet</strong>
+            <span>No {{ group.label|lower }} notifications are currently recorded.</span>
+          </div>
+          {% endif %}
+        </section>
+        {% endfor %}
+      </div>
+    </section>
+    {% else %}
+    <section class="notification-preferences" aria-labelledby="notificationPreferencesTitle">
+      <header class="preferences-intro">
+        <span class="settings-label">delivery</span>
+        <h4 id="notificationPreferencesTitle">push notifications</h4>
+        <p>Manage this device's Nexus push subscription and label. Push delivery is available from the installed app.</p>
+      </header>
+      <section class="settings-section" id="settings-notifications">
+        <span class="settings-label">notification status</span>
+        <div class="push-status" id="push-status">checking…</div>
+        <button type="button" id="push-enable-btn" class="push-btn" hidden>Enable notifications</button>
+        <div class="push-device-picker" id="push-device-picker" hidden>
+          <span>device:</span>
+          <button type="button" class="push-device" data-device="iphone">iPhone</button>
+          <button type="button" class="push-device" data-device="ipad">iPad</button>
+          <button type="button" class="push-device" data-device="macbook">MacBook</button>
+        </div>
+        <div class="push-result" id="push-result" aria-live="polite"></div>
+      </section>
+    </section>
+    {% endif %}
+  </main>
+  </div></div>
+  <script src="/static/app_shell.js?v={{ shell_asset_v }}" defer></script>
+</body>
+</html>

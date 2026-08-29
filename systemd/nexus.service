@@ -1,0 +1,29 @@
+[Unit]
+Description=Tower — Nexus dashboard + scheduler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/nexus
+EnvironmentFile=%h/nexus/.env
+Environment=NEXUS_STATE_DIR=%h/.local/state/nexus
+Environment=NEXUS_PLANNED_OFFLINE_NODES=charlie
+Environment=FLEET_GPU_JOB_SSH_HOST=
+# Bind loopback AND alpha's tailnet address EXPLICITLY — never 0.0.0.0.
+# cloudflared dials the loopback origin (that is the Cloudflare-Access-gated
+# public path); the delta/charlie session hooks POST /events to the tailnet
+# address. The old 0.0.0.0 wildcard also exposed every route to the LAN, where
+# nothing authenticates them — Access only sees traffic that goes through the
+# tunnel — including POST /api/control/workers, which launches a fleet worker.
+# PeerTrustMiddleware rejects untrusted peers independently; this is the second
+# of two layers. run.py exists because uvicorn's --host takes one address.
+# Deployment-specific. Set NEXUS_BIND_ADDRESSES in .env to the loopback plus
+# this host's own tailnet address; never 0.0.0.0. See the comment below.
+ExecStart=%h/nexus/.venv/bin/python %h/nexus/run.py
+Restart=always
+RestartSec=5
+# self-heal process crashes; the OS surface should never stay down silently
+
+[Install]
+WantedBy=default.target

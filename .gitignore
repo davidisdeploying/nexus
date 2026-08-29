@@ -1,0 +1,16 @@
+.env
+secrets/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite*
+state/
+__pycache__/
+*.pyc
+.venv/
+# Legacy in-tree backup guards; use Git history for rollback, never author these.
+.build-backups/
+backups/
+*.bak*
+node_modules/
+tools/_runtime/

@@ -1,0 +1,492 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800;9..144,900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* ============================================================================
+   Nexus — shared design system.
+   Linked by the board and long-read surfaces such as Worker Activity. The board
+   owns the canonical visual tokens and reading affordances used by every
+   adopted Nexus surface.
+   ============================================================================ */
+:root{
+  --panel:#080d0f; --stone:#111a1d; --stone-2:#162226; --bezel:#1d2b30;
+  --cyan:#57e0d8; --cyan-deep:#2f8f96;
+  --amber:#efa63a; --red:#e0574a; --green:#5fd08a;
+  --rune-dim:#3a5a5e;
+  --ink:#dcece9; --ink-dim:#7f9b98; --line:#22383c;
+
+  /* Nexus-wide type contract. */
+  --font-display:"Fraunces",Georgia,serif;
+  --font-ui:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+
+  /* Semantic aliases. Route styles consume roles, not independent palettes. */
+  --surface-canvas:var(--panel); --surface-panel:var(--stone); --surface-raised:var(--stone-2);
+  --text-primary:var(--ink); --text-muted:var(--ink-dim); --text-metadata:var(--ink-dim);
+  --border-default:var(--line); --accent-primary:var(--cyan); --accent-deep:var(--cyan-deep);
+  --status-ok:var(--cyan); --status-warning:var(--amber); --status-error:var(--red);
+  --provider-claude:#d99a6c; --provider-openai:var(--cyan); --provider-google:#7ca9f5;
+
+  /* Compatibility aliases for older adopted modules during migration. */
+  --sans:var(--font-ui); --mono:var(--font-mono); --text:var(--ink);
+  --dim:var(--ink-dim); --faint:var(--ink-dim); --ink-faint:var(--ink-dim);
+}
+
+/* ---- Motion tokens (2026-07-16 motion pass) --------------------------------
+   One dialect for every animated surface on the Nexus — durations/easings/
+   springs live HERE, retune in one place. --dur-lamp-* bind the living-lamp
+   breathing rate to health state
+   (slow=ok, med=warn, fast=crit); --ease-spring is a piecewise-linear
+   damped-spring approximation for shared-element/spring-settle motion. */
+:root{
+  --dur-lamp-ok:3.6s; --dur-lamp-warn:1.8s; --dur-lamp-crit:.9s;
+  --dur-shimmer:2.4s; --dur-spark:1s; --dur-count:1.1s; --dur-morph:.42s;
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --ease-spring:linear(
+    0, 0.063, 0.213, 0.409 15.7%, 0.599 20.9%,
+    0.776 26.7%, 0.888 31.6%, 0.976 36.9%,
+    1.033 41.9%, 1.057 45.1%, 1.070 48.4%,
+    1.073 51.3%, 1.067 55.1%, 1.048 60.6%,
+    1.017 68.5%, 1.001 76.4%, 0.994 84%,
+    0.997 91.6%, 1
+  );
+}
+
+/* ---- Shared header search box + nav (board AND wiki) --------------------- */
+.tools{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.navlink{font-size:11px; text-transform:uppercase; letter-spacing:.16em;
+  color:var(--ink-dim); text-decoration:none; padding:6px 10px;
+  border:1px solid var(--line); border-radius:6px; white-space:nowrap;
+  transition:color .12s ease, border-color .12s ease}
+.navlink:hover{color:var(--cyan); border-color:var(--cyan-deep)}
+
+/* ---- Global application shell -----------------------------------------
+   The dashboard chrome is the only top-level shell. Analytics, governance,
+   inventory, and terminal routes render their page identity and content below
+   this exact frame instead of inventing smaller, differently-colored headers. */
+.nexus-app-body{margin:0;padding:0;min-height:100vh;background:var(--panel);color:var(--ink);
+  font:400 16px/1.45 var(--font-ui);-webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(120% 70% at 50% -8%,color-mix(in srgb,var(--cyan) 12%,transparent),transparent 60%),
+    radial-gradient(120% 60% at 50% 112%,color-mix(in srgb,var(--amber) 8%,transparent),transparent 60%);
+  background-attachment:fixed}
+.nexus-app-body *{box-sizing:border-box}
+.nexus.nexus-app-frame{max-width:1220px;margin:26px auto;padding:10px}
+.nexus-sticky-shell{position:sticky;top:0;z-index:30;isolation:isolate;
+  background:color-mix(in srgb,var(--stone) 78%,transparent);
+  -webkit-backdrop-filter:blur(18px) saturate(135%);
+  backdrop-filter:blur(18px) saturate(135%);
+  box-shadow:0 12px 28px -26px #000,inset 0 -1px color-mix(in srgb,var(--cyan) 8%,transparent)}
+.nexus-sticky-shell > header,
+.nexus-sticky-shell > .nexus-page-head,
+.nexus-sticky-shell > .nexus-app-nav{background:transparent}
+.nexus-icon{width:17px;height:17px;display:block;flex:0 0 auto}
+.nexus-app-nav{position:relative;z-index:2;border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--stone) 94%,transparent)}
+.nexus-app-nav__track{display:flex;align-items:center;gap:3px;overflow-x:auto;
+  padding:7px 12px;scrollbar-width:none;overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch}
+.nexus-app-nav__track::-webkit-scrollbar{display:none}
+.nexus-app-link{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;
+  min-height:35px;padding:0 10px;border:1px solid transparent;border-radius:7px;
+  color:var(--ink-dim);font:600 10px/1 var(--font-mono);
+  letter-spacing:.02em;text-decoration:none;white-space:nowrap;
+  transition:color .12s ease,border-color .12s ease,background .12s ease}
+.nexus-app-link:hover{color:var(--ink);border-color:var(--line);
+  background:color-mix(in srgb,var(--stone-2) 78%,transparent)}
+.nexus-app-link.is-active{color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 28%,var(--line));
+  background:color-mix(in srgb,var(--cyan) 8%,var(--stone))}
+.nexus-app-link:focus-visible,.nexus-page-home:focus-visible{outline:2px solid var(--cyan);
+  outline-offset:2px}
+.nexus-app-link--mobile-notifications,.nexus-app-link--mobile-status{display:none}
+.nexus-app-link--mobile-notifications,.nexus-app-link--desktop-notifications{position:relative}
+.nexus-app-notification-count{position:absolute;top:-2px;right:-2px;min-width:14px;height:14px;
+  padding:0 3px;border-radius:100px;background:var(--red);color:#fff;font-size:8px;
+  font-weight:700;line-height:14px;text-align:center;box-shadow:0 0 0 2px var(--stone-2)}
+.nexus-app-notification-health{position:absolute;bottom:1px;left:1px;width:7px;height:7px;
+  border-radius:100px;background:var(--amber);box-shadow:0 0 0 2px var(--stone-2)}
+
+@media(min-width:641px){
+  .nexus-app-nav__track{justify-content:center}
+}
+
+/* Dashboard wordmark and utility cluster. Keep these selectors scoped so a
+   page's own card headers cannot alter the application chrome. */
+.nexus-dashboard-chrome{display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  padding:20px 26px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--cyan) 5%,transparent),transparent)}
+.nexus-dashboard-chrome .eye{width:42px;height:42px;flex:0 0 auto;
+  filter:drop-shadow(0 0 10px color-mix(in srgb,var(--stcol) 70%,transparent))}
+.nexus-dashboard-chrome .eye .frame{stroke:var(--stcol);stroke-width:5;fill:none}
+.nexus-dashboard-chrome .eye .iris,.nexus-dashboard-chrome .eye .lash{fill:var(--stcol)}
+.nexus-dashboard-chrome .eye .scanbar{fill:#fff;opacity:.9;animation:eyescan 4.2s ease-in-out infinite}
+@keyframes eyescan{0%,100%{transform:translateX(-10px);opacity:.15}50%{transform:translateX(10px);opacity:.95}}
+.nexus-dashboard-chrome #overall-eye{filter:drop-shadow(0 0 12px var(--eye-col))}
+.nexus-dashboard-chrome #overall-eye .nexus-eye-mark{fill:var(--eye-col)}
+.nexus-dashboard-chrome .nexus-brand{display:contents}
+.nexus-dashboard-chrome .titles{display:flex;flex-direction:column;gap:3px;min-width:0}
+.nexus-dashboard-chrome .eyebrow{font-size:11px;line-height:1.5;text-transform:uppercase;letter-spacing:.22em;color:var(--ink-dim)}
+.nexus-dashboard-chrome h1{font-family:var(--font-display);font-weight:900;
+  font-size:clamp(24px,3.6vw,38px);line-height:1.5;letter-spacing:.01em;margin:0;color:var(--ink)}
+/* The heading is now the wordmark. The name stays as visually-hidden text so
+   the <h1> still carries real text; the SVG inherits --ink through
+   currentColor and is sized by height, never by font-size. */
+.nexus-dashboard-chrome h1.nexus-wordmark{line-height:0;color:var(--ink)}
+.nexus-dashboard-chrome h1.nexus-wordmark svg{display:block;
+  height:clamp(20px,2.9vw,30px);width:auto;fill:currentColor}
+.nexus-wordmark-name{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.nexus-dashboard-chrome .overall{display:flex;align-items:center;gap:12px;margin-left:auto;
+  flex-wrap:wrap;justify-content:flex-end}
+.nexus-dashboard-chrome .scan-control{display:inline-flex;align-items:center;justify-content:center;width:38px;
+  height:38px;min-height:38px;padding:0;border-radius:7px;
+  border:1px solid color-mix(in srgb,var(--cyan) 55%,var(--line));
+  background:color-mix(in srgb,var(--cyan) 8%,transparent);color:var(--cyan);
+  cursor:pointer;box-shadow:0 0 12px -8px var(--cyan)}
+.nexus-dashboard-chrome .scan-control .nexus-icon{width:18px;height:18px}
+.nexus-dashboard-chrome .scan-control.is-scanning .nexus-icon{animation:nexus-refresh-spin .8s linear infinite}
+@keyframes nexus-refresh-spin{to{transform:rotate(360deg)}}
+.nexus-dashboard-chrome .scan-control:hover{border-color:var(--cyan)}
+.nexus-dashboard-chrome .scan-control:disabled{cursor:wait;opacity:.65}
+.nexus-dashboard-chrome .overall .stamp{font-size:12px;color:var(--ink-dim)}
+.nexus-dashboard-chrome .overall .clock{font-size:13px;color:var(--cyan);padding:3px 9px;
+  border:1px solid var(--line);border-radius:5px}
+.nexus-dashboard-chrome .header-controls{display:contents}
+.nexus-dashboard-chrome .bell{position:relative;display:inline-flex;
+  align-items:center;justify-content:center;width:38px;height:38px;min-height:38px;padding:0;
+  border-radius:8px;color:var(--ink);background:transparent;border:1px solid var(--line);cursor:pointer;text-decoration:none}
+.nexus-dashboard-chrome .bell-label{display:none}
+.nexus-dashboard-chrome .mobile-dashboard-control,
+.nexus-dashboard-chrome .mobile-cli-control,
+.nexus-dashboard-chrome .mobile-refresh-control{display:none}
+.nexus-dashboard-chrome .bell:hover{border-color:var(--cyan)}
+.nexus-dashboard-chrome .bell.is-active{color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 55%,var(--line));
+  background:color-mix(in srgb,var(--cyan) 8%,var(--stone))}
+.nexus-dashboard-chrome .bell-count{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;
+  padding:0 4px;border-radius:100px;background:var(--red);color:#fff;font-size:10px;
+  font-weight:700;line-height:16px;text-align:center;box-shadow:0 0 0 2px var(--stone-2)}
+.nexus-dashboard-chrome .bell-health-dot{position:absolute;bottom:-2px;left:-2px;width:10px;height:10px;
+  border-radius:100px;background:var(--amber);box-shadow:0 0 0 2px var(--stone-2),0 0 8px -1px var(--amber)}
+.nexus-dashboard-chrome .system-status-link{display:inline-flex;
+  align-items:center;justify-content:center;gap:6px;min-height:38px;padding:0 10px;
+  border:1px solid var(--line);border-radius:8px;color:var(--ink-dim);background:transparent;
+  box-shadow:none;text-decoration:none;
+  font:700 9px/1 var(--font-mono);letter-spacing:.09em;white-space:nowrap}
+.nexus-dashboard-chrome .system-status-link .nexus-icon{width:16px;height:16px}
+.nexus-dashboard-chrome .system-status-link:hover,
+.nexus-dashboard-chrome .system-status-link.is-active{border-color:var(--line);color:var(--ink);
+  background:color-mix(in srgb,var(--stone-2) 78%,transparent)}
+.nexus-dashboard-chrome .warnticker{display:none}
+.nexus-dashboard-chrome .lamp{width:10px;height:10px;transform:rotate(45deg);
+  background:var(--stcol);box-shadow:0 0 12px -1px var(--stcol)}
+.nexus-dashboard-chrome .wt-lead{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;
+  text-decoration:none;padding:7px 12px;border-radius:8px;min-height:36px;
+  background:var(--stone-2);box-shadow:inset 0 0 0 1px var(--line)}
+.nexus-dashboard-chrome .wt-lead-word{font-size:12px;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--stcol);font-weight:600;white-space:nowrap}
+.nexus-dashboard-chrome .wt-viewport{flex:1 1 auto;min-width:0;height:36px;display:flex;
+  align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+.nexus-dashboard-chrome .wt-ok-msg{display:inline-flex;align-items:center;min-height:36px;
+  font-size:12px;color:var(--ink-dim);white-space:nowrap}
+.nexus-dashboard-chrome .wt-ok-msg b{color:var(--cyan);font-weight:600;margin-right:6px}
+.nexus-dashboard-chrome .wt-track,.nexus-dashboard-chrome .wt-list{display:flex;align-items:center}
+.nexus-dashboard-chrome .wt-list{gap:8px;flex:0 0 auto;padding-right:8px}
+.nexus-dashboard-chrome .wt-dup{display:none}
+.nexus-dashboard-chrome .wt-chip{--stcol:var(--amber);display:inline-flex;align-items:center;gap:6px;
+  text-decoration:none;padding:7px 11px;border-radius:100px;min-height:36px;font-size:11.5px;
+  color:var(--ink);white-space:nowrap;background:color-mix(in srgb,var(--stcol) 14%,var(--stone-2));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--stcol) 45%,transparent)}
+.nexus-dashboard-chrome .wt-chip.crit{--stcol:var(--red)}
+.nexus-dashboard-chrome .wt-chip.warn{--stcol:var(--amber)}
+.nexus-dashboard-chrome .wt-chip.unknown{--stcol:var(--rune-dim)}
+.nexus-dashboard-chrome .wt-sym{color:var(--stcol);font-weight:700}
+@media(prefers-reduced-motion:no-preference){
+  .nexus-dashboard-chrome .wt-viewport{overflow:hidden}
+  .nexus-dashboard-chrome .wt-track.wt-scrolling .wt-dup{display:flex}
+  .nexus-dashboard-chrome .wt-track.wt-scrolling{animation:wt-scroll-rtl var(--wt-dur,18s) linear infinite}
+}
+@keyframes wt-scroll-rtl{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+.nexus-app-frame .nexus-page-content{width:auto;max-width:none;margin:0;padding:24px 26px 54px}
+.nexus-content-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;
+  margin:0 0 20px;padding:0 0 15px;border-bottom:1px solid var(--line);background:transparent}
+.nexus-content-title{display:flex;flex-direction:column;min-width:0}
+.nexus-content-title h2{margin:0;color:var(--ink);font:800 clamp(20px,2.5vw,28px)/1.05
+  var(--font-display);letter-spacing:.01em;text-transform:lowercase}
+.nexus-content-status{margin-left:auto;max-width:48%;overflow:hidden;text-overflow:ellipsis;
+  color:var(--ink-dim);font:500 10px/1.35 var(--font-mono);
+  white-space:nowrap;text-align:right}
+
+/* Shared parent-and-lenses navigation for Activity and Operations. */
+.nexus-lens-tabs{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;
+  margin:-2px 0 22px;padding:0 0 12px;border-bottom:1px solid var(--line)}
+.nexus-lens-tabs::-webkit-scrollbar{display:none}
+.nexus-lens-tab{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;min-height:40px;
+  padding:0 13px;border:1px solid transparent;border-radius:8px;color:var(--ink-dim);
+  background:transparent;font:600 11px/1 var(--font-mono);text-decoration:none;cursor:pointer}
+.nexus-lens-tab .nexus-icon{width:18px;height:18px}
+.nexus-lens-tab:hover{color:var(--ink);border-color:var(--line)}
+.nexus-lens-tab.is-active,.nexus-lens-tab[aria-selected="true"]{color:var(--cyan);
+  border-color:color-mix(in srgb,var(--cyan) 48%,var(--line));
+  background:color-mix(in srgb,var(--cyan) 8%,var(--stone))}
+.nexus-lens-tab:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.nexus-lens-head{display:flex;align-items:baseline;gap:10px;margin:0 0 16px}
+.nexus-lens-head>span{color:var(--ink-dim);font:600 8px/1 var(--font-mono);
+  letter-spacing:.14em;text-transform:uppercase}
+.nexus-lens-head h3{margin:0;color:var(--ink);font:800 clamp(20px,2.3vw,27px)/1.05 var(--font-display);
+  text-transform:lowercase}
+
+/* iPad and desktop share one compact command row: brand, then glyph-only
+   Dashboard, CLI, Refresh utilities, then the labeled Activity,
+   Operations, Notifications, and Status destinations. The phone shell below
+   keeps its touch-first two-row composition in the same utility order. */
+@media(min-width:768px){
+  .nexus-sticky-shell{display:grid;
+    grid-template-columns:minmax(0,1fr) auto auto;
+    align-items:center;column-gap:3px;padding:20px 26px;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,color-mix(in srgb,var(--cyan) 5%,transparent),transparent)}
+  .nexus-sticky-shell > .nexus-dashboard-chrome{display:contents}
+  .nexus-dashboard-chrome .nexus-brand{grid-column:1;grid-row:1;display:flex;
+    align-items:center;gap:16px;min-width:0;min-height:64px;justify-self:stretch}
+  .nexus-dashboard-chrome h1{white-space:nowrap}
+  .nexus-dashboard-chrome .header-controls{grid-column:2;grid-row:1;display:flex;
+    align-items:center;gap:3px;width:max-content;min-height:64px;justify-self:start}
+  .nexus-dashboard-chrome .mobile-dashboard-control,
+  .nexus-dashboard-chrome .mobile-cli-control,
+  .nexus-dashboard-chrome .mobile-refresh-control{display:inline-flex;width:44px;height:44px;min-height:44px;
+    color:var(--ink-dim);border-color:var(--line);background:transparent;box-shadow:none}
+  .nexus-dashboard-chrome .header-controls .nexus-icon{width:18px;height:18px}
+  .nexus-dashboard-chrome .header-controls .bell:hover,
+  .nexus-dashboard-chrome .header-controls .scan-control:hover{color:var(--ink);border-color:var(--line);
+    background:color-mix(in srgb,var(--stone-2) 78%,transparent)}
+  .nexus-dashboard-chrome .mobile-dashboard-control.is-active,
+  .nexus-dashboard-chrome .mobile-cli-control.is-active,
+  .nexus-dashboard-chrome .scan-control.is-scanning{color:var(--cyan);border-color:var(--cyan);
+    background:color-mix(in srgb,var(--cyan) 15%,var(--stone));box-shadow:0 0 12px -8px var(--cyan)}
+  .nexus-sticky-shell > .nexus-app-nav{grid-column:3;grid-row:1;display:flex;align-items:center;
+    width:max-content;min-height:64px;border-bottom:0;background:transparent;justify-self:end}
+  .nexus-sticky-shell > .nexus-app-nav .nexus-app-nav__track{padding:0}
+  .nexus-dashboard-chrome .overall{display:none}
+  .nexus-dashboard-chrome .overall .stamp,
+  .nexus-dashboard-chrome .overall .clock{display:none}
+  .nexus-app-link{min-height:44px;padding:0 12px;border-radius:8px;
+    border-color:var(--line);background:transparent;color:var(--ink-dim);box-shadow:none;
+    font-size:11px;font-weight:700;letter-spacing:.06em}
+  .nexus-app-link:hover{color:var(--ink);border-color:var(--line);
+    background:color-mix(in srgb,var(--stone-2) 78%,transparent)}
+  .nexus-app-link.is-active{color:var(--cyan);border-color:var(--cyan);
+    background:color-mix(in srgb,var(--cyan) 15%,var(--stone));box-shadow:0 0 12px -8px var(--cyan)}
+}
+
+@media(min-width:768px) and (max-width:1100px){
+  .nexus-sticky-shell{column-gap:1px;padding:16px 18px}
+  .nexus-dashboard-chrome .nexus-brand{gap:10px}
+  .nexus-dashboard-chrome .eye{width:34px;height:34px}
+  .nexus-dashboard-chrome .eyebrow{font-size:9px;letter-spacing:.16em}
+  .nexus-dashboard-chrome h1{font-size:28px;line-height:1.25}
+  .nexus-app-nav__track{gap:1px}
+  .nexus-dashboard-chrome .header-controls{gap:1px}
+  .nexus-dashboard-chrome .mobile-dashboard-control,
+  .nexus-dashboard-chrome .mobile-cli-control,
+  .nexus-dashboard-chrome .mobile-refresh-control{width:42px;height:42px;min-height:42px}
+  .nexus-app-link{gap:5px;min-height:42px;padding:0 8px;font-size:10px}
+  .nexus-app-link .nexus-icon{width:15px;height:15px}
+}
+
+@media(min-width:768px) and (max-width:840px){
+  .nexus-sticky-shell{column-gap:1px;padding:14px 16px}
+  .nexus-dashboard-chrome .nexus-brand{gap:7px;min-height:48px}
+  .nexus-dashboard-chrome .eye{width:38px;height:38px}
+  .nexus-dashboard-chrome .titles .eyebrow{display:none}
+  .nexus-dashboard-chrome h1{font-size:21px;line-height:1.25}
+  .nexus-sticky-shell > .nexus-app-nav{min-height:48px}
+  .nexus-app-nav__track{gap:1px}
+  .nexus-dashboard-chrome .mobile-dashboard-control,
+  .nexus-dashboard-chrome .mobile-cli-control,
+  .nexus-dashboard-chrome .mobile-refresh-control{width:38px;height:38px;min-height:38px}
+  .nexus-app-link{gap:4px;min-height:38px;padding:0 4px;font-size:9px}
+  .nexus-app-link .nexus-icon{width:14px;height:14px}
+}
+
+@media(min-width:641px) and (max-width:767px){
+  .nexus-dashboard-chrome{flex-wrap:nowrap;gap:12px;padding:16px 18px}
+  .nexus-dashboard-chrome .nexus-brand{display:flex;align-items:center;gap:10px;min-width:0}
+  .nexus-dashboard-chrome .eye{width:42px;height:42px}
+  .nexus-dashboard-chrome h1{font-size:26px;white-space:nowrap}
+  .nexus-dashboard-chrome .overall{display:none}
+  .nexus-dashboard-chrome .header-controls{display:flex;align-items:center;gap:2px;margin-left:auto}
+  .nexus-dashboard-chrome .mobile-dashboard-control,
+  .nexus-dashboard-chrome .mobile-cli-control,
+  .nexus-dashboard-chrome .mobile-refresh-control{display:inline-flex;width:38px;height:38px;min-height:38px}
+  .nexus-app-nav__track{padding:6px 12px}
+}
+
+@media(max-width:640px){
+  html,body{overflow-x:clip}
+  .nexus.nexus-app-frame{margin:8px;padding:6px;border-radius:12px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.6),0 12px 40px -28px #000}
+  .nexus-dashboard-chrome{justify-content:center;gap:4px;row-gap:8px;padding:12px 6px;
+    padding-top:calc(12px + env(safe-area-inset-top,0px))}
+  .nexus-dashboard-chrome .eye{order:1;width:30px;height:30px}
+  .nexus-dashboard-chrome .titles{order:2}
+  .nexus-dashboard-chrome .titles .eyebrow{display:none}
+  .nexus-dashboard-chrome h1{font-size:clamp(17px,4.6vw,19px)}
+  .nexus-dashboard-chrome .overall,
+  .nexus-dashboard-chrome .header-controls{display:contents}
+  .nexus-dashboard-chrome .overall .stamp{display:none}
+  .nexus-dashboard-chrome .scan-control{position:relative;
+    display:inline-flex;order:6;width:42px;height:42px;min-height:42px;padding:0;border-radius:8px}
+  .nexus-dashboard-chrome .scan-control::before{content:"";
+    position:absolute;inset:-5px -6px}
+  .nexus-dashboard-chrome .overall .clock{display:none}
+  .nexus-dashboard-chrome .bell{width:42px;height:42px;min-height:42px}
+  .nexus-dashboard-chrome .mobile-dashboard-control{display:inline-flex;order:3}
+  .nexus-dashboard-chrome .mobile-cli-control{display:inline-flex;order:5}
+  .nexus-dashboard-chrome .mobile-dashboard-control,
+  .nexus-dashboard-chrome .mobile-dashboard-control:hover,
+  .nexus-dashboard-chrome .mobile-dashboard-control:active,
+  .nexus-dashboard-chrome .mobile-cli-control,
+  .nexus-dashboard-chrome .mobile-cli-control:hover,
+  .nexus-dashboard-chrome .mobile-cli-control:active,
+  .nexus-dashboard-chrome .scan-control,
+  .nexus-dashboard-chrome .scan-control:hover,
+  .nexus-dashboard-chrome .scan-control:active,
+  .nexus-dashboard-chrome .scan-control:disabled{
+    color:var(--ink);border-color:var(--line);background:transparent;box-shadow:none;opacity:1}
+  .nexus-dashboard-chrome .mobile-dashboard-control.is-active,
+  .nexus-dashboard-chrome .mobile-cli-control.is-active{
+    color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 55%,var(--line));
+    background:color-mix(in srgb,var(--cyan) 8%,var(--stone));box-shadow:0 0 12px -8px var(--cyan)}
+  .nexus-dashboard-chrome .warnticker{order:7;display:flex;flex:1 1 100%;min-width:0;align-items:center;gap:8px}
+  .nexus-dashboard-chrome .warnticker:has(.wt-ok){display:none}
+  .nexus-app-frame .nexus-page-content{padding:16px 12px 44px}
+  .nexus-content-head{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;
+    align-items:flex-start;margin-bottom:16px;padding-bottom:12px}
+  .nexus-content-title h2{font-size:20px}
+  .nexus-content-status{width:100%;max-width:none;margin-left:0;font-size:9px;
+    text-align:left;white-space:nowrap}
+  .nexus-lens-tabs{margin-bottom:16px;padding-bottom:10px}
+  .nexus-lens-tabs--four,.activity-tabs{display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;overflow:visible}
+  .nexus-lens-tabs--two{display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:3px;overflow:visible}
+  .nexus-lens-tab{justify-content:center;width:100%;min-width:0;min-height:38px;
+    gap:5px;padding:0 4px;font-size:9px}
+  .nexus-lens-tab .nexus-icon{width:16px;height:16px}
+  .nexus-app-nav__track{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:2px;overflow:visible;padding:6px 4px}
+  .nexus-app-link--desktop-notifications,.nexus-app-link--desktop-status{display:none}
+  .nexus-app-link--mobile-notifications,.nexus-app-link--mobile-status{display:inline-flex}
+  .nexus-app-link{justify-content:center;width:100%;min-width:0;min-height:37px;
+    gap:4px;padding:0 3px;font-size:8.5px}
+  .nexus-app-link .nexus-icon{width:15px;height:15px}
+}
+
+@media(max-width:380px){
+  .nexus-dashboard-chrome{gap:5px;padding-left:10px;padding-right:10px}
+  .nexus-dashboard-chrome .eye{width:28px;height:28px}
+  .nexus-dashboard-chrome h1{font-size:16px}
+  .nexus-dashboard-chrome .bell{width:38px;height:38px;min-height:38px}
+  .nexus-dashboard-chrome .scan-control{width:38px;height:38px;min-height:38px}
+}
+
+@media(min-width:641px) and (max-width:1024px){
+  .nexus.nexus-app-frame{margin:16px auto;max-width:100%}
+  .nexus-app-frame .nexus-page-content{padding:22px 18px 44px}
+}
+
+/* ---- Wiki / search page shell ------------------------------------------- */
+.wiki-body{
+  background:var(--panel); color:var(--ink);
+  font-family:var(--font-ui); font-size:16px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; min-height:100vh; margin:0;
+  background-image:
+    radial-gradient(120% 70% at 50% -8%, color-mix(in srgb,var(--cyan) 10%,transparent), transparent 60%),
+    radial-gradient(120% 60% at 50% 112%, color-mix(in srgb,var(--amber) 6%,transparent), transparent 60%);
+  background-attachment:fixed;
+}
+.circuits{position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 63px, color-mix(in srgb,var(--cyan) 12%,transparent) 63px 64px),
+    repeating-linear-gradient(90deg, transparent 0 63px, color-mix(in srgb,var(--cyan) 12%,transparent) 63px 64px);
+  -webkit-mask-image:radial-gradient(80% 70% at 50% 20%, #000 40%, transparent 100%);
+  mask-image:radial-gradient(80% 70% at 50% 20%, #000 40%, transparent 100%);
+  opacity:.4}
+
+.nexus{position:relative; z-index:1; max-width:900px;
+  margin:26px auto; border:1px solid var(--bezel); border-radius:16px;
+  background:linear-gradient(180deg,var(--stone-2),var(--stone));
+  box-shadow:0 0 0 1px rgba(0,0,0,.6),
+    inset 0 0 60px -20px color-mix(in srgb,var(--cyan) 40%,transparent),
+    0 30px 80px -40px #000;
+  padding:10px}
+.screen{position:relative; overflow:clip; border-radius:9px;
+  background:radial-gradient(140% 90% at 50% 0%, var(--stone-2), var(--panel) 80%);
+  border:1px solid var(--line)}
+
+/* ---- Wiki header (eye + wordmark + nav + search) ------------------------ */
+.wiki-head{display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  padding:16px 22px; border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, color-mix(in srgb,var(--cyan) 5%,transparent), transparent)}
+.wiki-head .eye{width:40px; height:40px; flex:0 0 auto; text-decoration:none;
+  filter:drop-shadow(0 0 8px color-mix(in srgb,var(--cyan) 60%,transparent))}
+.wiki-head .eye svg{width:40px; height:40px; display:block}
+.wiki-head .eye .nexus-eye-mark{fill:var(--cyan)}
+.wiki-head .eye .frame{stroke:var(--cyan); stroke-width:5; fill:none}
+.wiki-head .eye .iris{fill:var(--cyan)}
+.wiki-head .brand{display:flex; flex-direction:column; gap:2px; text-decoration:none; min-width:0}
+.wiki-head .eyebrow{font-size:10px; text-transform:uppercase; letter-spacing:.22em; color:var(--ink-dim)}
+.wiki-head .brand h1{font-family:var(--font-display); font-weight:900; font-size:20px;
+  margin:0; color:var(--ink); letter-spacing:.01em}
+.wiki-head .tools{margin-left:auto}
+
+/* breadcrumb strip under the header */
+.crumb{padding:9px 22px; border-bottom:1px solid var(--line);
+  color:var(--ink-dim);font:500 12px/1.5 var(--font-mono);word-break:break-all}
+.crumb a{color:var(--cyan-deep); text-decoration:none}
+.crumb a:hover{color:var(--cyan)}
+
+/* ---- Reading affordances: scroll-progress bar (2026-07-16 motion pass) --
+   wiki + Worker Activity share this (both are long-read pages linking this
+   file). Zero JS: a fixed hairline whose scaleX rides the document's own
+   scroll() timeline. scroll(root) names the document scroller explicitly —
+   .screen (the device-frame chrome both pages sit inside) is overflow:clip,
+   not the actual scroller, so the un-rooted default could otherwise resolve
+   ambiguously depending on where the element lives in the tree. Unsupported
+   browsers: animation-timeline is dropped as invalid, animation-duration
+   defaults to 0s, so the bar just sits inert at rest (scaleX(0)) — inert,
+   never wrong-looking. */
+.scroll-progress{position:fixed; top:0; left:0; width:100%; height:3px; z-index:50;
+  background:linear-gradient(90deg, var(--cyan-deep), var(--cyan));
+  box-shadow:0 0 8px -1px color-mix(in srgb,var(--cyan) 70%,transparent);
+  transform-origin:0 50%; transform:scaleX(0);
+  animation:scrollprogress linear both;
+  animation-timeline:scroll(root);
+}
+@keyframes scrollprogress{ from{transform:scaleX(0)} to{transform:scaleX(1)} }
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+/* ---- Shared status accents + notched frame chrome -----------------------
+   Canonical for both the fleet board and /jobs. Component-specific frame
+   overrides stay with their owning page; these base rules live here once. */
+.developed{--stcol:var(--cyan); --eye-dur:var(--dur-lamp-ok); --eye-col:oklch(84% 0.13 189)}
+.safelight{--stcol:var(--amber); --eye-dur:var(--dur-lamp-warn); --eye-col:oklch(79% 0.15 65)}
+.overexposed{--stcol:var(--red); --eye-dur:var(--dur-lamp-crit); --eye-col:oklch(63% 0.19 25)}
+.unexposed{--stcol:var(--rune-dim); --eye-dur:var(--dur-lamp-ok); --eye-col:oklch(40% 0.03 210)}
+.frame{position:relative; background:var(--stone-2);
+  padding:0; overflow:hidden;
+  clip-path:polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%,
+                    14px 100%, 0 calc(100% - 14px));
+  box-shadow:inset 0 0 0 1px var(--line),
+    inset 0 22px 40px -34px color-mix(in srgb,var(--cyan) 60%,transparent)}
+.frame::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:var(--stcol); z-index:3;
+  box-shadow:0 0 10px 0 var(--stcol);
+  animation:edgebreathe 3.4s ease-in-out infinite}
+.frame.overexposed::before{animation-duration:1.1s}
+.frame.safelight::before{animation-duration:2.1s}
+@keyframes edgebreathe{
+  0%,100%{opacity:.55; box-shadow:0 0 6px 0 var(--stcol)}
+  50%{opacity:1; box-shadow:0 0 16px 1px var(--stcol)}}
+.frame::after{content:""; position:absolute; top:0; right:0; width:14px; height:14px;
+  background:linear-gradient(225deg, var(--stcol), transparent 70%);
+  opacity:.85; z-index:3}

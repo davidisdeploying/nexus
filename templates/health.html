@@ -1,0 +1,108 @@
+{% import "_app_shell.html" as app_shell %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>operations · Nexus</title>
+  {{ app_shell.app_icons() }}
+  <meta name="theme-color" content="#080d0f">
+  <link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+  <link rel="stylesheet" href="/static/health.css?v={{ health_asset_v }}">
+</head>
+<body class="nexus-app-body">
+  <div class="circuits"></div>
+  <div class="nexus nexus-app-frame"><div class="screen">
+  {{ app_shell.dashboard_chrome("operations", chrome_snap, chrome_accent, chrome_unread, chrome_stamp, false, chrome_system_status) }}
+  <main class="health-shell nexus-page-content">
+    {{ app_shell.operations_header("health",
+        ("scanned " ~ projection.scan_generated_at_central) if projection.received_samples else "history unavailable",
+        "") }}
+
+    {% if not snap %}
+    <section class="health-empty">
+      <strong>No current fleet snapshot</strong>
+      <p>The collector has not produced readable current state yet.</p>
+    </section>
+    {% else %}
+    {% set overall_class = accent[snap.overall] %}
+    <section class="health-hero {{ overall_class }}" aria-labelledby="healthOutcome">
+      <span class="health-lamp" aria-hidden="true"></span>
+      <div>
+        <span class="health-kicker">overall fleet state</span>
+        <h3 id="healthOutcome">{{ snap.overall.value }}</h3>
+        <p>
+          {% if snap.overall.value == 'ok' %}All sampled systems are nominal.
+          {% elif snap.overall.value == 'warn' %}At least one system needs attention.
+          {% elif snap.overall.value == 'crit' %}A critical system condition is active.
+          {% else %}Current fleet state is incomplete or unavailable.{% endif %}
+        </p>
+      </div>
+      <span class="health-freshness {{ 'is-fresh' if projection.scan_is_fresh else 'is-stale' }}">
+        {{ 'fresh' if projection.scan_is_fresh else 'stale' }}
+      </span>
+    </section>
+
+    <section class="health-metrics" aria-label="Health summary">
+      <article><span>healthy now</span><strong>{{ projection.nodes_healthy_now }}/{{ projection.nodes_total }}</strong></article>
+      <article><span>24h healthy</span><strong>{{ (projection.overall_healthy_pct ~ '%') if projection.overall_healthy_pct is not none else '—' }}</strong></article>
+      <article><span>cadence coverage</span><strong>{{ projection.cadence_coverage_pct }}%</strong></article>
+      <article><span>last sweep</span><strong>{{ projection.duration_ms.current|round|int if projection.duration_ms.current is not none else '—' }}{% if projection.duration_ms.current is not none %}ms{% endif %}</strong></article>
+    </section>
+
+    <section class="health-section" aria-labelledby="systemsHeading">
+      <div class="health-section-head">
+        <div><span class="health-kicker">current snapshot</span><h3 id="systemsHeading">systems</h3></div>
+        <span>{{ snap.nodes|length }} monitored</span>
+      </div>
+      <div class="health-node-grid">
+        {% for node in snap.nodes %}
+        {% set np = projection.nodes.get(node.name) %}
+        <article class="health-node {{ accent[node.health] }}">
+          <header>
+            <div><h4>{{ node.display_name or node.name }}</h4><span>{{ node.name }}</span></div>
+            <span class="health-state">{{ node.health.value }}</span>
+          </header>
+          {% if np %}
+          <div class="health-distribution" aria-label="{{ node.name }} 24-hour state distribution">
+            {% for state in ('ok','warn','crit','unknown') %}
+            {% set count = np.counts_by_state.get(state, 0) %}
+            {% if count %}<i class="state-{{ state }}" style="flex:{{ count }} 0 0" title="{{ state }} · {{ count }} samples"></i>{% endif %}
+            {% endfor %}
+          </div>
+          <div class="health-node-meta">
+            <span>{{ np.healthy_pct }}% healthy</span>
+            <span>{{ np.incident_count }} incident{{ '' if np.incident_count == 1 else 's' }}</span>
+          </div>
+          {% endif %}
+          <ul class="health-probes">
+            {% for probe in node.probes %}
+            <li>
+              <span class="probe-dot {{ accent[probe.health] }}"></span>
+              <span class="probe-kind">{{ probe.kind }}</span>
+              <strong>{{ probe.value or '—' }}</strong>
+              {% if probe.detail %}<small>{{ probe.detail }}</small>{% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="health-section" aria-labelledby="diagnosticsHeading">
+      <div class="health-section-head">
+        <div><span class="health-kicker">related evidence</span><h3 id="diagnosticsHeading">diagnostics</h3></div>
+      </div>
+      <div class="health-links">
+        <a href="/operations?tab=conformance"><strong>Conformance</strong><span>Declared contracts and drift checks</span><b>open →</b></a>
+        <a href="/operations?tab=watchdogs"><strong>Watchdogs</strong><span>Protective mechanisms and guards</span><b>open →</b></a>
+        <a href="/operations?tab=indexes"><strong>Indexes</strong><span>Canonical fleet sources and ownership</span><b>open →</b></a>
+      </div>
+    </section>
+    {% endif %}
+  </main>
+  </div></div>
+  <script src="/static/app_shell.js?v={{ shell_asset_v }}" defer></script>
+</body>
+</html>

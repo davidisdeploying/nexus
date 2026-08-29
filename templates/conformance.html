@@ -1,0 +1,340 @@
+{% import "_app_shell.html" as app_shell %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>operations · Nexus</title>
+{{ app_shell.app_icons() }}
+<link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+<link rel="stylesheet" href="/static/activity.css?v={{ activity_asset_v }}">
+<style>
+  body { margin: 0; }
+  .conformance-page { max-width: 1080px; margin: 0 auto; padding: 24px 16px; font-family: var(--font-ui); }
+  .nav-back { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--cyan); text-decoration: none; margin-bottom: 16px; }
+  .nav-back:hover { text-decoration: underline; }
+  
+  .page-header { margin-bottom: 24px; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
+  .page-title-row { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .page-title-row h1 { font-size: 22px; font-weight: 700; color: var(--ink); margin: 0; letter-spacing: -0.02em; }
+  .page-stamp { font-family: var(--font-mono); font-size: 12px; color: var(--ink-dim); }
+
+  .hero-card { background: color-mix(in srgb, var(--stone-2) 84%, var(--panel)); border: 1px solid var(--line); border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+  .hero-status-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .hero-headline { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .hero-desc { font-size: 13px; line-height: 1.5; color: var(--ink-dim); margin: 0; }
+
+  .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 32px; }
+  .metric-card { background: var(--stone); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .metric-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-dim); }
+  .metric-val { font-family: var(--font-mono); font-size: 20px; font-weight: 700; color: var(--ink); }
+  .metric-card.ok .metric-val { color: var(--cyan); }
+  .metric-card.warning .metric-val { color: var(--amber); }
+  .metric-card.error .metric-val { color: var(--red); }
+
+  .section-block { margin-bottom: 36px; min-width: 0; }
+  .section-block h2 { font: 800 19px/1.1 var(--font-display); color: var(--ink); margin: 0 0 14px 0; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+
+  .cover-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .cover-card { background: var(--stone); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+  .cover-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .cover-card-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .cover-card-count { font-family: var(--font-mono); font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: var(--bg); color: var(--cyan); }
+  .cover-card-desc { font-size: 12px; line-height: 1.4; color: var(--ink-dim); margin: 0; }
+
+  .cat-group { margin-bottom: 28px; min-width: 0; }
+  .cat-group-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 6px 10px; background: var(--stone-2); border-radius: 6px; cursor: pointer; list-style: none; }
+  .cat-group-header::-webkit-details-marker { display: none; }
+  .cat-group-header::before { content: "▸"; margin-right: 8px; color: var(--ink-dim); font-size: 10px; }
+  .cat-group[open] > .cat-group-header::before { content: "▾"; }
+  .cat-group-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .cat-group-meta { font-family: var(--font-mono); font-size: 11px; color: var(--ink-dim); }
+
+  .history-strip { display: flex; gap: 2px; list-style: none; padding: 0; margin: 8px 0; height: 28px; align-items: stretch; }
+  .history-tick { flex: 1 1 auto; min-width: 2px; border-radius: 2px; background: var(--line); }
+  .history-tick.state-ok { background: var(--cyan); }
+  .history-tick.state-warning { background: var(--amber); }
+  .history-tick.state-error { background: var(--red); }
+  .history-tick.state-unknown { background: var(--ink-dim); }
+  .stability-line { margin-top: 4px; }
+
+  .check-table { display: block; box-sizing: border-box; width: 100%; max-width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; background: var(--bg); font-size: 12px; }
+  .check-table th { background: var(--stone); text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; color: var(--ink-dim); border-bottom: 1px solid var(--line); text-transform: uppercase; letter-spacing: 0.04em; }
+  .check-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink); }
+  .check-table tr:last-child td { border-bottom: none; }
+  .tech-id { font-family: var(--font-mono); font-size: 11px; color: var(--ink-dim); display: block; margin-top: 2px; }
+  .val-code { font-family: var(--font-mono); font-size: 11px; word-break: break-all; color: var(--ink); }
+  .evidence-box { margin-top: 6px; padding: 6px 8px; border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent); background: color-mix(in srgb, var(--amber) 8%, var(--bg)); border-radius: 4px; font-size: 11px; }
+  .evidence-box strong { color: var(--amber); }
+
+  .explainer-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .explainer-card { background: var(--stone); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .explainer-card h3 { font-size: 13px; font-weight: 600; color: var(--ink); margin: 0 0 6px 0; display: flex; align-items: center; gap: 8px; }
+  .explainer-card p { font-size: 12px; line-height: 1.45; color: var(--ink-dim); margin: 0; }
+
+  .limits-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .limits-item { background: var(--stone); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .limits-item h4 { font-size: 13px; font-weight: 600; color: var(--ink); margin: 0 0 4px 0; }
+  .limits-item p { font-size: 12px; line-height: 1.45; color: var(--ink-dim); margin: 0; }
+
+  .callout-box { background: color-mix(in srgb, var(--cyan) 8%, var(--stone)); border: 1px solid color-mix(in srgb, var(--cyan) 30%, transparent); border-radius: 8px; padding: 14px 16px; margin-top: 20px; font-size: 13px; line-height: 1.5; color: var(--ink); }
+  .callout-box strong { color: var(--cyan); }
+
+  @media(max-width: 800px) {
+    .cover-grid, .limits-list, .explainer-grid { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media(max-width: 500px) {
+    .metrics-grid { grid-template-columns: 1fr; }
+    .history-strip { gap: 1px; }
+    .history-tick { min-width: 1px; }
+  }
+</style>
+</head>
+<body class="nexus-app-body">
+<div class="circuits"></div>
+<div class="nexus nexus-app-frame"><div class="screen">
+{{ app_shell.dashboard_chrome("operations", chrome_snap, chrome_accent, chrome_unread, chrome_stamp, false, chrome_system_status) }}
+<main class="conformance-page nexus-page-content">
+  {{ app_shell.operations_header("conformance",
+      ("scanned " ~ projection.generated_at_central ~ " Central") if projection.available else "cache unavailable",
+      "") }}
+
+  {% if error or not projection.available %}
+  <div class="hero-card" style="border-color: var(--red);">
+    <div class="hero-status-bar">
+      <span class="badge error">error</span>
+      <strong class="hero-headline">Conformance cache unavailable</strong>
+    </div>
+    <p class="hero-desc">{{ error or projection.error }}</p>
+  </div>
+  {% else %}
+
+  <!-- Status Hero -->
+  <section class="hero-card">
+    <div class="hero-status-bar">
+      <span class="badge {{ projection.overall }}">{{ projection.overall }}</span>
+      <strong class="hero-headline">{{ projection.outcome_headline }}</strong>
+      {% if projection.is_stale %}
+      <span class="badge warning">stale (scan delayed)</span>
+      {% else %}
+      <span class="badge ok">fresh</span>
+      {% endif %}
+    </div>
+    <p class="hero-desc">
+      Conformance is an automated read-only drift detector operating on a 15-minute background cadence.
+      It verifies static contract hashes, inter-host SSH access, required systemd units, critical file paths, bounded automation evidence, backup state, and the five central governance indexes.
+      <strong>It detects drift and never performs automatic repairs.</strong>
+    </p>
+  </section>
+
+  <!-- State Metrics -->
+  <section class="metrics-grid">
+    <div class="metric-card ok">
+      <span class="metric-label">Required OK</span>
+      <span class="metric-val">{{ projection.required_counts.ok }}</span>
+    </div>
+    <div class="metric-card warning">
+      <span class="metric-label">Required warning</span>
+      <span class="metric-val">{{ projection.required_counts.warning }}</span>
+    </div>
+    <div class="metric-card error">
+      <span class="metric-label">Required error</span>
+      <span class="metric-val">{{ projection.required_counts.error }}</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Required unknown</span>
+      <span class="metric-val">{{ projection.required_counts.unknown }}</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Informational non-OK</span>
+      <span class="metric-val">{{ projection.informational_non_ok_count }}</span>
+    </div>
+  </section>
+
+  <!-- Recent scan history -->
+  <section class="section-block">
+    <h2>Recent scan history (~24h)</h2>
+    <ol class="history-strip" aria-label="Last {{ projection.history_strip|length }} conformance scans, oldest to newest, current state {{ projection.stability.current_state }}">
+      {% for sample in projection.history_strip %}
+      <li class="history-tick state-{{ sample.state }}" title="{{ sample.generated_at_central }}: {{ sample.state }}" aria-label="{{ sample.generated_at_central }}: {{ sample.state }}"></li>
+      {% endfor %}
+    </ol>
+    <p class="hero-desc stability-line">
+      {% if projection.stability.consecutive_scans > 0 %}
+      Stable at <strong>{{ projection.stability.current_state }}</strong> for
+      {% if projection.stability.at_least_qualifier %}at least {% endif %}<strong>{{ projection.stability.consecutive_scans }}</strong> scan{{ "s" if projection.stability.consecutive_scans != 1 else "" }}
+      (since {{ projection.stability.stable_since_central }}).
+      {% if projection.stability.last_transition %}
+      {% if projection.stability.last_transition.kind == 'policy_change' %}
+      Policy revision changed at {{ projection.stability.last_transition.at_central }}; the streak restarted without claiming a fleet-state transition.
+      {% else %}
+      Last transition: {{ projection.stability.last_transition.from }} → {{ projection.stability.last_transition.to }} at {{ projection.stability.last_transition.at_central }}.
+      {% endif %}
+      {% endif %}
+      {% else %}
+      No scan history retained yet.
+      {% endif %}
+    </p>
+  </section>
+
+  {% if projection.recently_recovered %}
+  <!-- Recently recovered -->
+  <section class="section-block">
+    <h2>Recently recovered</h2>
+    <table class="check-table">
+      <thead>
+        <tr>
+          <th style="width: 40%;">Check / ID</th>
+          <th>Recovered at</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in projection.recently_recovered %}
+        <tr>
+          <td>
+            <strong>{{ row.human_title }}</strong>
+            <code class="tech-id">{{ row.id }}</code>
+          </td>
+          <td>{{ row.last_recovered_at_central }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+
+  <!-- What the checks cover -->
+  <section class="section-block">
+    <h2>What the checks cover</h2>
+    <div class="cover-grid">
+      {% for cat in projection.categories %}
+      <div class="cover-card">
+        <div class="cover-card-header">
+          <span class="cover-card-title">{{ cat.title }}</span>
+          <span class="cover-card-count">{{ cat.ok_count }}/{{ cat.count }}</span>
+        </div>
+        <p class="cover-card-desc">{{ cat.description }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Grouped Check Results -->
+  <section class="section-block">
+    <h2>Declared check results</h2>
+    {% for cat in projection.categories %}
+    <details class="cat-group" {% if cat.non_ok_count > 0 %}open{% endif %}>
+      <summary class="cat-group-header">
+        <span class="cat-group-title">{{ cat.title }}</span>
+        <span class="cat-group-meta">{{ cat.ok_count }} of {{ cat.count }} passing</span>
+      </summary>
+      <table class="check-table">
+        <thead>
+          <tr>
+            <th style="width: 90px;">State</th>
+            <th style="width: 32%;">Check / ID</th>
+            <th style="width: 28%;">Expected</th>
+            <th>Observed (Actual)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in cat.checks %}
+          <tr>
+            <td>
+              <span class="badge {{ row.state }}">{{ row.state }}</span>
+            </td>
+            <td>
+              <strong>{{ row.human_title }}</strong>
+              <code class="tech-id">{{ row.id }}</code>
+              {% if row.navigate %}<a class="nav-back" href="{{ row.navigate }}" style="margin:5px 0 0">open evidence →</a>{% endif %}
+            </td>
+            <td>
+              <span class="val-code">{{ row.expected }}</span>
+            </td>
+            <td>
+              <span class="val-code">{{ row.actual }}</span>
+              {% if row.state != "ok" %}
+              <div class="evidence-box">
+                <strong>Last-known-good evidence:</strong><br>
+                Time: {{ row.last_ok_at_central if row.last_ok_at_central != "—" else row.last_ok_at or 'none' }}<br>
+                Value: <code class="val-code">{{ row.last_ok_actual or 'none' }}</code>
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </details>
+    {% endfor %}
+  </section>
+
+  <!-- How to read the states -->
+  <section class="section-block">
+    <h2>How to read the states</h2>
+    <div class="explainer-grid">
+      <div class="explainer-card">
+        <h3><span class="badge ok">OK</span> Exact match</h3>
+        <p>The observed state matches the declared contract exactly (e.g. SHA-256 hash verified, service active, file present, or SSH link verified).</p>
+      </div>
+      <div class="explainer-card">
+        <h3><span class="badge error">error</span> Verified mismatch / drift</h3>
+        <p>A check ran cleanly and verified a structural mismatch, missing path, stopped service, or failed SSH authentication.</p>
+      </div>
+      <div class="explainer-card">
+        <h3><span class="badge warning">unknown</span> Probe execution failure</h3>
+        <p>The collector probe could not complete execution (e.g. remote host unreachable or probe timeout). Unknown states represent unverified assertions.</p>
+      </div>
+      <div class="explainer-card">
+        <h3><span class="badge warning">warning</span> Advisory / Unknown aggregation</h3>
+        <p>Reserved for advisory drift or unverified conditions. Any check returning <code>unknown</code> automatically elevates the overall status to <code>warning</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- What green does not prove -->
+  <section class="section-block">
+    <h2>What green does not prove</h2>
+    <div class="limits-list">
+      <div class="limits-item">
+        <h4>Not complete fleet health</h4>
+        <p>Conformance verifies static declared contracts and accessibility rules, not overall fleet application health, memory usage, or active workload status.</p>
+      </div>
+      <div class="limits-item">
+        <h4>Not Temple/Lookout/full six-host SSH</h4>
+        <p>Monitored inter-host SSH checks cover the three always-on execution hosts. MacBook integrity and inbound SSH are still checked whenever reachable, but are informational because sleep or travel must not degrade the required result. It does not test all six hosts or ancillary nodes like Temple and Lookout.</p>
+      </div>
+      <div class="limits-item">
+        <h4>Not provider auth or quota</h4>
+        <p>Does not test external LLM provider API credentials, rate limits, credit balance, or model quotas.</p>
+      </div>
+      <div class="limits-item">
+        <h4>Not application behavior</h4>
+        <p>Does not execute application business logic, test HTTP handler behavior, or validate user interface workflows.</p>
+      </div>
+      <div class="limits-item">
+        <h4>Not NAS or GPU health</h4>
+        <p>Excludes network-attached storage (<code>/mnt/nas</code>, <code>/mnt/nas2</code>) mounts and GPU accelerator hardware state.</p>
+      </div>
+      <div class="limits-item">
+        <h4>Not a restore drill</h4>
+        <p>Snapshot freshness confirms backup archive file age and presence, not full database restoration viability or restore drill success.</p>
+      </div>
+      <div class="limits-item" style="grid-column: 1 / -1;">
+        <h4>Cache timestamp matters</h4>
+        <p>All evidence displayed here is derived from the background collector snapshot generated at <strong>{{ projection.generated_at_central }} Central</strong>. Cached green status reflects the state at collection time and can outlive live host changes if background collection is stalled or delayed.</p>
+      </div>
+    </div>
+
+    <div class="callout-box">
+      <strong>Heartbeat Distinction:</strong> The <em>Health Timeline</em> on the main Nexus dashboard is a separate machine-heartbeat surface tracking 5-minute system telemetry and daemon pulses, distinct from this 15-minute declarative drift collection service.
+    </div>
+  </section>
+
+  {% endif %}
+</main>
+</div></div>
+<script src="/static/app_shell.js?v={{ shell_asset_v }}" defer></script>
+</body>
+</html>
