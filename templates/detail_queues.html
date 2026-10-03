@@ -1,0 +1,63 @@
+{% import "_app_shell.html" as app_shell %}
+{% if not partial %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ queue }} · queue detail</title>
+{{ app_shell.app_icons() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+<link rel="stylesheet" href="/static/detail.css">
+</head>
+<body class="wiki-body">
+<div class="circuits"></div>
+<div class="nexus">
+<div class="screen">
+
+  <div class="wiki-head">
+    <a class="eye" href="/" title="Fleet board">
+      {{ app_shell.nexus_eye() }}
+    </a>
+    <a class="brand" href="/">
+      <h1>{{ queue }}</h1>
+    </a>
+    <div class="tools"><a class="navlink" href="/">board</a></div>
+  </div>
+{% endif %}
+
+  <div class="detail-partial" id="detail-queue">
+  {% if not found %}
+    <div class="d-section">
+      <div class="d-empty">no job currently carries a queue named <code class="d-mono">{{ queue }}</code>.</div>
+    </div>
+  {% else %}
+    {% for m in matches %}
+    <div class="d-section">
+      <div class="d-section-title">owned by <a class="navlink" href="/jobs/{{ m.job_id }}" style="display:inline-block">{{ m.job_id }}</a></div>
+      <div class="d-bar"><i style="width:{{ m.row.pct or 0 }}%"></i></div>
+      <dl class="d-kv">
+        <dt>done / total</dt><dd>{{ '{:,}'.format(m.row.done) }} / {{ '{:,}'.format(m.row.total) }}</dd>
+        <dt>pct</dt><dd>{{ m.row.pct if m.row.pct is not none else '—' }}%</dd>
+        <dt>waiting</dt><dd>{{ '{:,}'.format(m.row.waiting) if m.row.waiting is defined and m.row.waiting is not none else '—' }}</dd>
+        <dt>active</dt><dd>{{ m.row.active if m.row.active is defined and m.row.active is not none else '—' }}</dd>
+        <dt>rate</dt><dd>{{ m.row.rate if m.row.rate is defined and m.row.rate else '—' }}{% if m.row.rate %}/min{% endif %}</dd>
+        <dt>eta</dt><dd>{{ m.row.eta ~ 'm' if m.row.eta else '—' }}</dd>
+        <dt>remaining</dt><dd>{{ '{:,}'.format(m.row.remaining) if m.row.remaining is defined and m.row.remaining is not none else '—' }}</dd>
+        <dt>job state</dt><dd>{{ m.job_state or '—' }}</dd>
+        <dt>host</dt><dd>{{ m.job_host or '—' }}</dd>
+      </dl>
+    </div>
+    {% endfor %}
+  {% endif %}
+  </div>
+
+{% if not partial %}
+</div><!-- /screen -->
+</div><!-- /nexus -->
+</body>
+</html>
+{% endif %}

@@ -1,0 +1,12 @@
+{% macro module_shell(title, class_name="", href=None, body_class="jh-scroll", body_id=None, aria_live=None) -%}
+<section class="jh-col{% if class_name %} {{ class_name }}{% endif %}">
+  <div class="section-title">
+    <h2>{{ title }}</h2>
+    {% if href %}<a class="navlink" href="{{ href }}" style="margin-left:auto">more →</a>{% endif %}
+  </div>
+  <div class="section-rule"></div>
+  <div class="{{ body_class }}"{% if body_id %} id="{{ body_id }}"{% endif %}{% if aria_live %} aria-live="{{ aria_live }}"{% endif %}>
+    {{ caller() }}
+  </div>
+</section>
+{%- endmacro %}

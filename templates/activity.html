@@ -1,0 +1,146 @@
+{% import "_app_shell.html" as app_shell %}
+{% import "_job_row.html" as jobrow %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>fleet activity · Nexus</title>
+  {{ app_shell.app_icons() }}
+  <meta name="theme-color" content="#080d0f">
+  <link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+  <link rel="stylesheet" href="/static/herospath.css?v={{ herospath_css_v }}">
+  <link rel="stylesheet" href="/static/jobs.css?v={{ activity_asset_v }}">
+  <link rel="stylesheet" href="/static/model_usage.css?v={{ model_usage_asset_v }}">
+  <link rel="stylesheet" href="/static/activity.css?v={{ activity_asset_v }}">
+</head>
+<body class="nexus-app-body" data-initial-tab="{{ initial_tab|default('') }}">
+  <div class="circuits"></div>
+  <div class="nexus nexus-app-frame"><div class="screen">
+  {{ app_shell.dashboard_chrome("activity", chrome_snap, chrome_accent, chrome_unread, chrome_stamp, false, chrome_system_status) }}
+  <main class="activity-shell nexus-page-content">
+    {% set activity_lens = initial_tab if initial_tab in ['models', 'workers', 'jobs'] else 'overview' %}
+    {% set activity_status = "loading cache" %}
+    {% if activity_lens == 'models' %}{% set activity_status = "loading history" %}{% endif %}
+    {% if activity_lens == 'workers' %}{% set activity_status = (runs|length|string) ~ " worker runs" %}{% endif %}
+    {% if activity_lens == 'jobs' %}{% set activity_status = (jobs|length|string) ~ " jobs" %}{% endif %}
+    {{ app_shell.activity_header(activity_lens, activity_status, "activityStatus") }}
+
+    <section class="activity-card" aria-labelledby="activityLensTitle">
+      <header class="activity-controls" aria-label="Commit controls"{% if activity_lens != 'overview' %} hidden{% endif %}>
+        <div class="ranges" aria-label="Commit range">
+          <button data-range="all" aria-pressed="true">All</button>
+          <button data-range="30d" aria-pressed="false">30d</button>
+          <button data-range="7d" aria-pressed="false">7d</button>
+        </div>
+      </header>
+
+      <p id="activityMessage" class="activity-message" aria-live="polite"{% if activity_lens != 'overview' %} hidden{% endif %}></p>
+      <section id="overview" class="tab-panel" role="tabpanel"{% if activity_lens != 'overview' %} hidden{% endif %}></section>
+      <section id="models" class="tab-panel models-usage-panel" role="tabpanel"
+               data-status="loading history"{% if activity_lens != 'models' %} hidden{% endif %}>
+        <header class="usage-controls">
+          <div class="providers" role="group" aria-label="Provider">
+            <button class="active" data-provider="all">All</button>
+            <button data-provider="claude">Claude</button>
+            <button data-provider="codex">Codex</button>
+            <button data-provider="gemini">Gemini</button>
+          </div>
+          <div class="usage-ranges" role="group" aria-label="Quota history range">
+            <button data-usage-range="all">All</button>
+            <button data-usage-range="90d">90d</button>
+            <button class="active" data-usage-range="30d">30d</button>
+            <button data-usage-range="7d">7d</button>
+            <button data-usage-range="24h">24h</button>
+          </div>
+        </header>
+        <p id="usageMessage" class="usage-message" aria-live="polite"></p>
+        <div id="usageBody"><p class="empty">collecting telemetry…</p></div>
+
+        <section class="model-activity-section" aria-labelledby="modelActivityTitle">
+          <header class="model-activity-heading">
+            <div>
+              <h3 id="modelActivityTitle">model activity</h3>
+              <span>comparable assistant turns by provider</span>
+            </div>
+            <div class="model-activity-ranges" role="group" aria-label="Model activity range">
+              <button data-model-range="all" aria-pressed="true">All</button>
+              <button data-model-range="30d" aria-pressed="false">30d</button>
+              <button data-model-range="7d" aria-pressed="false">7d</button>
+            </div>
+          </header>
+          <p id="modelActivityMessage" class="model-activity-message" aria-live="polite"></p>
+          <div id="modelActivityBody"><p class="empty">loading model activity…</p></div>
+        </section>
+
+        <footer class="usage-meta">
+          <span>five-minute quota snapshots · comparable assistant-turn activity</span>
+          <span id="usageDatabase"></span>
+        </footer>
+        <details class="events-drawer">
+          <summary>quota events <span id="eventCount"></span></summary>
+          <div id="usageEvents"><p class="empty">No events in this range.</p></div>
+        </details>
+      </section>
+      <section id="workers" class="tab-panel worker-activity-panel" role="tabpanel"
+               data-run-count="{{ runs|length }}"{% if activity_lens != 'workers' %} hidden{% endif %}>
+        <div class="worker-activity-intro">
+          <span>relay runs and their recorded tool trails</span>
+          <span>{{ runs|length }} run{{ '' if runs|length == 1 else 's' }}</span>
+        </div>
+        {% if not_found %}
+        <div class="hp-notfound">no transcript for <code>{{ not_found }}</code> — pick a run below.</div>
+        {% endif %}
+        {% if runs %}
+        <ul class="hp-runlist worker-activity-list">
+          {% for r in runs %}
+          <li>
+            <a href="/activity/workers/{{ r.token }}">{{ r.token }}</a>
+            <span class="hp-run-meta">
+              <span class="hp-seat {{ r.seat_class }}">{{ r.seat }}</span>
+              · <span class="hp-state-{{ r.state }}">{{ r.state }}</span>
+              · {{ r.age }}
+              {% if r.state == 'running' %}<span class="hp-live-dot" title="live"></span>{% endif %}
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="hp-empty">No worker runs with transcripts yet.</p>
+        {% endif %}
+      </section>
+
+      <section id="jobs" class="tab-panel jobs-activity-panel" role="tabpanel"
+               data-job-count="{{ jobs|length }}"{% if activity_lens != 'jobs' %} hidden{% endif %}>
+        <div class="jobs-activity-intro">
+          <span>heartbeat-backed work across the fleet</span>
+          <span>{{ jobs|length }} job{{ '' if jobs|length == 1 else 's' }}</span>
+        </div>
+        {% if jobs %}
+        <div class="jobs-list activity-jobs-list">
+          {% for gj in jobs %}
+          {% set ga = state_accent.get(gj.state, 'unexposed') %}
+          {{ jobrow.job_row(gj, ga) }}
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-event">No job heartbeats yet.</p>
+        {% endif %}
+      </section>
+
+      <footer class="activity-meta"{% if activity_lens == 'models' %} hidden{% endif %}>
+        <span id="activityMetaText">fleet commits, pushes, and comparable assistant turns</span>
+      </footer>
+    </section>
+
+    <details class="recent-drawer" id="recentActivityDrawer"{% if activity_lens != 'overview' %} hidden{% endif %}>
+      <summary>recent activity</summary>
+      <div id="recentActivity" class="recent-events"></div>
+    </details>
+  </main>
+  </div></div>
+  <script src="/static/app_shell.js?v={{ shell_asset_v }}" defer></script>
+  <script src="/static/activity.js?v={{ activity_asset_v }}" defer></script>
+  <script src="/static/model_usage.js?v={{ model_usage_asset_v }}" defer></script>
+</body>
+</html>

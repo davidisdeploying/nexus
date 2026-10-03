@@ -1,0 +1,111 @@
+/* ============================================================================
+   Nexus — Phase 1 deep-linkable detail routes.
+   Shared component styles for /run, /jobs, /queues, /alerts, /approve.
+   Layered on nexus.css tokens + the wiki-body/nexus/screen page shell — this
+   file owns only the detail-page widgets, mirroring how dashboard.html keeps
+   its own inline styles on top of the same shared shell.
+   ============================================================================ */
+
+.d-anchornav{display:flex; gap:8px; flex-wrap:wrap; padding:12px 34px 0}
+.d-anchornav a{font-size:11px; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--cyan-deep); text-decoration:none; border:1px solid var(--line);
+  border-radius:6px; padding:5px 10px}
+.d-anchornav a:hover{color:var(--cyan); border-color:var(--cyan-deep)}
+
+.d-section{padding:20px 34px; border-bottom:1px solid var(--line); scroll-margin-top:16px}
+.d-section:last-child{border-bottom:0}
+.d-section-title{font-size:11px; text-transform:uppercase; letter-spacing:.18em;
+  color:var(--ink-dim); margin:0 0 14px}
+
+.d-kv{display:grid; grid-template-columns:max-content 1fr; gap:7px 18px; font-size:13px; margin:0}
+.d-kv dt{color:var(--ink-dim)}
+.d-kv dd{margin:0; color:var(--ink); word-break:break-word}
+
+.d-chip{display:inline-block; font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+  padding:3px 9px; border-radius:5px; border:1px solid var(--line); color:var(--ink-dim)}
+.d-chip.developed{color:var(--cyan); border-color:var(--cyan-deep);
+  background:color-mix(in srgb,var(--cyan) 10%,transparent)}
+.d-chip.overexposed{color:var(--red); border-color:var(--red);
+  background:color-mix(in srgb,var(--red) 10%,transparent)}
+.d-chip.safelight{color:var(--amber); border-color:var(--amber);
+  background:color-mix(in srgb,var(--amber) 10%,transparent)}
+.d-chip.unexposed{color:var(--ink-dim)}
+
+.d-bar{position:relative; height:8px; border-radius:4px; background:var(--bezel); overflow:hidden; margin:6px 0}
+.d-bar i{display:block; height:100%; border-radius:4px;
+  background:linear-gradient(90deg,var(--cyan-deep),var(--cyan))}
+
+.d-row{display:flex; align-items:center; gap:12px; padding:9px 0;
+  border-bottom:1px dotted var(--line); font-size:13px}
+.d-row:last-child{border-bottom:0}
+.d-row-label{flex:0 0 100px; color:var(--ink-dim); text-transform:uppercase; font-size:11px; letter-spacing:.06em}
+.d-row-bar{flex:1 1 auto; min-width:80px}
+.d-row-text{flex:0 0 auto; color:var(--ink); font-size:12px; white-space:nowrap}
+
+.d-empty{padding:20px 0; color:var(--ink-dim); font-style:italic; font-size:13px}
+
+.d-list{list-style:none; margin:0; padding:0}
+.d-list li{padding:13px 0; border-bottom:1px dotted var(--line)}
+.d-list li:last-child{border-bottom:0}
+.d-list a{text-decoration:none; color:inherit; display:block}
+
+.d-mono{font-family:var(--font-mono); font-size:12px;
+  color:var(--cyan-deep); word-break:break-all}
+
+.d-pre{background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--cyan-deep);
+  border-radius:8px; padding:14px 16px; overflow-x:auto; overflow-y:auto; max-height:480px;
+  font-size:12.5px; color:var(--ink); white-space:pre-wrap; word-break:break-word; margin:0}
+
+.d-conflict{color:var(--amber)}
+.d-conflict-list{margin:6px 0 0; padding-left:1.2em; font-size:12px}
+
+/* Approve shell — 56pt bottom-anchored placeholders per touch §H.1. INERT: no
+   click handlers, disabled attr set, cursor communicates "not yet". */
+.d-approve-bar{display:flex; gap:12px; padding:16px 34px;
+  border-top:1px solid var(--line); background:linear-gradient(180deg,transparent,var(--stone))}
+.d-btn{flex:1; min-height:56pt; border-radius:10px; font-size:14px; text-transform:uppercase;
+  letter-spacing:.08em; font-weight:700; border:1px solid var(--line); background:transparent;
+  cursor:not-allowed; opacity:.55; font-family:inherit}
+.d-btn.approve{color:var(--cyan); border-color:var(--cyan-deep)}
+.d-btn.deny{color:var(--red); border-color:var(--red)}
+.d-btn-note{padding:0 34px 20px; font-size:11px; color:var(--ink-dim); font-style:italic}
+
+/* ============================================================================
+   Touch T3.5 — cold-load sheet-over-dashboard (dashboard.html only; the T3
+   sheet markup/JS live there — see .sheet-backdrop/.sheet in that file).
+   Scoped entirely under body.cold-sheet (set server-side by routes.py's
+   _cold_sheet_response on a direct/cold hit of a detail route); a normal
+   dashboard request never carries that class, so this block is inert then —
+   normal dashboard.html output stays byte-identical at every width.
+   ============================================================================ */
+body.cold-sheet .sheet-backdrop{display:block; position:fixed; inset:0;
+  z-index:40; background:rgba(0,0,0,.55); opacity:0; pointer-events:none;
+  transition:opacity .22s ease}
+body.cold-sheet .sheet-backdrop.open{opacity:1; pointer-events:auto}
+body.cold-sheet .sheet{display:flex; flex-direction:column; z-index:41}
+body.cold-sheet .sheet-body{flex:1 1 auto; overflow-y:auto;
+  -webkit-overflow-scrolling:touch; padding:2px 16px 24px;
+  overscroll-behavior:contain}
+body.cold-sheet .sheet-close{position:absolute; top:6px; right:6px;
+  width:44px; height:44px; min-height:44px; display:flex;
+  align-items:center; justify-content:center; font-size:16px; line-height:1;
+  color:var(--ink-dim); background:transparent; border:0; border-radius:8px}
+body.cold-sheet .sheet-close:active{background:var(--stone-2); color:var(--ink)}
+
+/* Desktop/tablet (>640px): centered modal card instead of a bottom sheet —
+   the drag handle makes no sense without a bottom edge to drag toward, so
+   it's hidden; close is ✕/backdrop/Back only (Phase 3 spec). ≤640px keeps
+   the existing T3 bottom-sheet geometry, defined in dashboard.html's own
+   phone-only @media(max-width:640px) block — untouched by this file. */
+@media (min-width:641px){
+  body.cold-sheet .sheet{position:fixed; top:50%; left:50%;
+    width:calc(100% - 48px); max-width:640px; max-height:85vh;
+    border-radius:16px; background:var(--stone);
+    box-shadow:0 24px 64px -24px rgba(0,0,0,.6), inset 0 0 0 1px var(--line);
+    opacity:0; pointer-events:none; transform:translate(-50%,-46%);
+    transition:opacity .22s ease, transform .22s ease}
+  body.cold-sheet .sheet.open{opacity:1; pointer-events:auto;
+    transform:translate(-50%,-50%)}
+  body.cold-sheet .sheet-handle{display:none}
+  body.cold-sheet .sheet-body{padding:20px 24px 28px}
+}
