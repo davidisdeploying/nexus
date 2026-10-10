@@ -1,0 +1,149 @@
+{% import "_app_shell.html" as app_shell %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>fleet status · Nexus</title>
+  {{ app_shell.app_icons() }}
+  <meta name="theme-color" content="#080d0f">
+  <link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+  <link rel="stylesheet" href="/static/system_status.css?v={{ system_status_asset_v }}">
+</head>
+<body class="nexus-app-body system-status-body">
+  <div class="circuits"></div>
+  <div class="nexus nexus-app-frame"><div class="screen">
+  {{ app_shell.dashboard_chrome("system-status", chrome_snap, chrome_accent,
+      chrome_unread, chrome_stamp, false, system_status) }}
+
+  <main class="system-status-page nexus-page-content">
+    {{ app_shell.status_header(status_lens,
+        system_status.module_count ~ " modules · " ~ system_status.issue_count ~ " flagged checks",
+        "systemStatusPageSummary") }}
+
+    {% if status_lens == 'overview' %}
+    <section class="system-status-lens-panel" aria-labelledby="statusLensTitle">
+    <section class="system-status-hero status-{{ system_status.overall }}"
+             aria-labelledby="systemStatusOverall">
+      <div class="system-status-hero__signal">
+        <span class="system-status-hero__lamp" aria-hidden="true"></span>
+        <div>
+          <span>overall fleet status</span>
+          <h3 id="systemStatusOverall">{{ system_status.label }}</h3>
+        </div>
+      </div>
+      <p>
+        {% if system_status.overall == 'critical' %}
+        At least one confirmed failure needs attention. Open the red modules below for exact evidence and the owning page.
+        {% elif system_status.overall == 'warn' %}
+        Nexus is operating with degraded, stale, or incomplete evidence. Every warning remains traceable below.
+        {% else %}
+        Every monitored Nexus module is reporting current, healthy evidence.
+        {% endif %}
+      </p>
+      <dl class="system-status-counts">
+        <div><dt>OK</dt><dd>{{ system_status.counts.ok }}</dd></div>
+        <div><dt>WARN</dt><dd>{{ system_status.counts.warn }}</dd></div>
+        <div><dt>CRITICAL</dt><dd>{{ system_status.counts.critical }}</dd></div>
+      </dl>
+      <div class="system-status-hero__meta">
+        <span>cache-only · no request-time fleet probes</span>
+        <time datetime="{{ system_status.generated_at }}" data-status-generated>{{ system_status.generated_at }}</time>
+        <a href="/system-status?tab=overview" class="system-status-refresh">refresh</a>
+      </div>
+    </section>
+
+    {% set flagged = system_status.modules|selectattr('status', 'ne', 'ok')|list %}
+    {% if flagged %}
+    <section class="system-status-attention" aria-labelledby="attentionTitle">
+      <header>
+        <span>attention queue</span>
+        <h3 id="attentionTitle">What needs attention</h3>
+      </header>
+      <nav aria-label="Flagged system modules">
+        {% for module in flagged %}
+        {% if module.group in ['Core', 'Fleet'] %}{% set module_lens = 'systems' %}
+        {% elif module.group == 'Governance' %}{% set module_lens = 'governance' %}
+        {% else %}{% set module_lens = 'services' %}{% endif %}
+        <a class="attention-link status-{{ module.status }}" href="/system-status?tab={{ module_lens }}#module-{{ module.id }}">
+          <span class="attention-link__lamp" aria-hidden="true"></span>
+          <span><strong>{{ module.title }}</strong><small>{{ module.summary }}</small></span>
+          <em>{{ module.status|upper }}</em>
+        </a>
+        {% endfor %}
+      </nav>
+    </section>
+    {% endif %}
+    </section>
+    {% else %}
+
+    {% if status_lens == 'systems' %}
+      {% set visible_groups = ['Core', 'Fleet'] %}
+      {% set lens_description = 'Nexus runtime and fleet-wide health, jobs, and worker-seat evidence.' %}
+    {% elif status_lens == 'governance' %}
+      {% set visible_groups = ['Governance'] %}
+      {% set lens_description = 'Declared conformance, canonical control-plane indexes, and watchdog coverage.' %}
+    {% else %}
+      {% set visible_groups = ['Analytics', 'Delivery', 'Modules'] %}
+      {% set lens_description = 'Analytics, notification delivery, control surfaces, and application modules.' %}
+    {% endif %}
+    <section class="system-status-registry system-status-lens-panel" aria-labelledby="statusLensTitle">
+      <header class="system-status-registry__head">
+        <p>{{ lens_description }} Missing evidence fails safe to WARN; confirmed faults roll up to CRITICAL.</p>
+      </header>
+
+      {% for group in visible_groups %}
+      {% set group_modules = system_status.modules|selectattr('group', 'equalto', group)|list %}
+      {% if group_modules %}
+      <section class="system-status-group" aria-labelledby="group-{{ group|lower }}">
+        <h4 id="group-{{ group|lower }}">{{ group }}</h4>
+        <div class="system-status-grid">
+          {% for module in group_modules %}
+          <article class="system-module status-{{ module.status }}" id="module-{{ module.id }}">
+            <header class="system-module__head">
+              <span class="system-module__lamp" aria-hidden="true"></span>
+              <div>
+                <span>{{ module.group }}</span>
+                <h5>{{ module.title }}</h5>
+              </div>
+              <strong>{{ module.status|upper }}</strong>
+            </header>
+            <p class="system-module__summary">{{ module.summary }}</p>
+            {% if module.detail %}<p class="system-module__detail">{{ module.detail }}</p>{% endif %}
+            <div class="system-module__meta">
+              {% if module.updated_at %}<time datetime="{{ module.updated_at }}">evidence {{ module.updated_at }}</time>{% else %}<span>live or registry-backed</span>{% endif %}
+              <a href="{{ module.href }}">open module →</a>
+            </div>
+
+            {% if module.checks %}
+            {% set non_ok_checks = module.checks|selectattr('status', 'ne', 'ok')|list %}
+            <details class="system-module__checks"{% if non_ok_checks %} open{% endif %}>
+              <summary>{{ module.checks|length }} checks · {{ non_ok_checks|length }} flagged</summary>
+              <ul>
+                {% for check in module.checks %}
+                <li class="status-{{ check.status }}">
+                  <span class="check-lamp" aria-hidden="true"></span>
+                  <span class="check-copy">
+                    <strong>{{ check.label }}</strong>
+                    {% if check.value %}<em>{{ check.value }}</em>{% endif %}
+                    {% if check.detail %}<small>{{ check.detail }}</small>{% endif %}
+                  </span>
+                  {% if check.href %}<a href="{{ check.href }}" aria-label="Open {{ check.label }}">→</a>{% endif %}
+                </li>
+                {% endfor %}
+              </ul>
+            </details>
+            {% endif %}
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+      {% endfor %}
+    </section>
+    {% endif %}
+  </main>
+  </div></div>
+  <script src="/static/app_shell.js?v={{ shell_asset_v }}" defer></script>
+</body>
+</html>

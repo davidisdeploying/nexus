@@ -1,0 +1,72 @@
+/* ==========================================================================
+   Watchdogs (PANEL-4) — read-only inventory of watch/guard mechanisms.
+   Deliberately distinct from jobs.css: list rows in an accordion (not a card
+   grid) and no hero numbers. It uses the same application typography,
+   background, and semantic palette as the other Operations lenses. Reuses
+   nexus.css tokens (--ink, --ink-dim, --line,
+   --stone, --stone-2, --bezel, --cyan/--amber/--red via the shared
+   .developed/.safelight/.overexposed/.unexposed accent classes) rather than
+   inventing a parallel palette.
+   ========================================================================== */
+
+:root{
+  --watchdogs-ui:var(--font-ui);
+  --watchdogs-mono:var(--font-mono);
+}
+
+.watchdogs-body,.watchdogs-shell{font-family:var(--watchdogs-ui)}
+.watchdogs-shell .crumb{margin:0 0 18px;padding:0 0 14px;border-bottom:1px solid var(--line);
+  color:var(--ink-dim);font:400 13px/1.5 var(--watchdogs-ui);word-break:normal}
+
+.wd-list{display:flex; flex-direction:column; gap:10px}
+
+.wd-host{border:1px solid var(--line); border-radius:8px;
+  background:color-mix(in srgb,var(--stone-2) 84%,var(--panel));
+  overflow:hidden}
+
+.wd-host-toggle{width:100%; display:flex; align-items:center; gap:14px;
+  padding:13px 18px; min-height:44px; background:transparent; border:0;
+  color:var(--ink); font:inherit; text-align:left; cursor:pointer}
+.wd-host-toggle:hover{background:var(--stone-2)}
+.wd-host-toggle:focus-visible{outline:2px solid var(--cyan); outline-offset:-2px}
+.wd-host-name{font:600 16px/1.2 var(--watchdogs-ui);text-transform:capitalize}
+.wd-host-count{font:400 12px/1.4 var(--watchdogs-ui);color:var(--ink-dim);margin-left:auto}
+.wd-host-caret{color:var(--ink-dim); font-size:12px; transition:transform .15s ease}
+.wd-host-toggle[aria-expanded="true"] .wd-host-caret{transform:rotate(90deg)}
+
+.wd-detail{display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--line);
+  padding:6px}
+
+.wd-row{border-bottom:1px solid var(--line)}
+.wd-row:last-child{border-bottom:0}
+.wd-row > summary{list-style:none; cursor:pointer; display:flex; align-items:center;
+  gap:10px; flex-wrap:wrap; padding:10px 12px; min-height:44px}
+.wd-row > summary::-webkit-details-marker{display:none}
+.wd-kind-glyph{flex:0 0 auto; font-size:14px}
+.wd-row-label{font:600 13px/1.35 var(--watchdogs-ui);color:var(--ink);flex:0 1 auto;min-width:120px}
+.wd-row-target{font:400 11px/1.45 var(--watchdogs-mono);color:var(--ink-dim);flex:1 1 160px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+.wd-badge{display:inline-flex; align-items:center; gap:5px; font-size:10px;
+  text-transform:uppercase; letter-spacing:.12em; padding:3px 9px;
+  border-radius:4px; border:1px solid var(--line); color:var(--ink-dim);
+  flex:0 0 auto}
+.wd-badge.developed,.wd-badge.safelight,.wd-badge.overexposed{
+  color:var(--stcol); border-color:color-mix(in srgb,var(--stcol) 55%,transparent)}
+.wd-badge.unexposed{color:var(--ink-dim)}
+.wd-badge.retired{opacity:.6}
+.wd-badge-glyph{font-size:11px}
+
+.wd-row-detail{padding:4px 12px 14px 36px; display:flex; flex-direction:column; gap:6px}
+.wd-field{display:flex;gap:8px;font:400 12px/1.45 var(--watchdogs-ui);flex-wrap:wrap}
+.wd-field-label{color:var(--ink-dim); text-transform:uppercase; letter-spacing:.1em;
+  font-size:10px; flex:0 0 150px}
+.wd-field-value{color:var(--ink);flex:1 1 240px;word-break:break-word}
+
+.wd-error{padding:12px; color:var(--ink-dim); font-size:13px}
+
+@media (max-width:420px){
+  .wd-host-count{margin-left:0; flex-basis:100%}
+  .wd-row-target{flex-basis:100%}
+  .wd-field-label{flex-basis:100%}
+}

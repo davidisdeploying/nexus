@@ -1,0 +1,63 @@
+{% import "_app_shell.html" as app_shell %}
+{% if not partial %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>alert {{ alert_id }} · Nexus</title>
+{{ app_shell.app_icons() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+<link rel="stylesheet" href="/static/detail.css">
+</head>
+<body class="wiki-body">
+<div class="circuits"></div>
+<div class="nexus">
+<div class="screen">
+
+  <div class="wiki-head">
+    <a class="eye" href="/" title="Fleet board">
+      {{ app_shell.nexus_eye() }}
+    </a>
+    <a class="brand" href="/notifications">
+      <h1>alert #{{ alert_id }}</h1>
+    </a>
+    <div class="tools">
+      <a class="navlink" href="/notifications">notifications</a>
+      <a class="navlink" href="/">board</a>
+    </div>
+  </div>
+{% endif %}
+
+  <div class="detail-partial" id="detail-alert">
+  {% if not found %}
+    <div class="d-section">
+      <div class="d-empty">no such alert — id <code class="d-mono">{{ alert_id }}</code> isn't in the alerts table (it's empty pre-Phase-2).</div>
+    </div>
+  {% else %}
+    <div class="d-section">
+      <p style="margin:0 0 12px">
+        {% if resolved %}<span class="d-chip developed">resolved</span>{% else %}<span class="d-chip safelight">open</span>{% endif %}
+      </p>
+      <dl class="d-kv">
+        <dt>id</dt><dd>{{ alert.id }}</dd>
+        <dt>condition</dt><dd class="d-mono">{{ alert.condition_key or '—' }}</dd>
+        <dt>host</dt><dd>{{ alert.host or '—' }}</dd>
+        <dt>first seen</dt><dd>{{ alert.first_seen or '—' }}</dd>
+        <dt>last seen</dt><dd>{{ alert.last_seen or '—' }}</dd>
+        <dt>resolved at</dt><dd>{{ alert.resolved_at or '—' }}</dd>
+        <dt>last notified</dt><dd>{{ alert.last_notified_at or '—' }}</dd>
+      </dl>
+    </div>
+  {% endif %}
+  </div>
+
+{% if not partial %}
+</div><!-- /screen -->
+</div><!-- /nexus -->
+</body>
+</html>
+{% endif %}

@@ -1,0 +1,1068 @@
+  :root{
+    /* ---- Dashboard layout token -------------------------------------- */
+    /* Shared desktop body height for dashboard modules. This is the
+       exact rendered height of the three 88px Jobs cards plus their two 10px
+       gaps. Summary modules fit inside it; evidence modules may scroll. */
+    --module-h: 284px;
+
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--panel); color:var(--ink);
+    font-family:var(--font-ui); font-size:16px; line-height:1.45;
+    -webkit-font-smoothing:antialiased; min-height:100vh;
+    /* layered radial glow: cyan top, amber bottom, on near-black nexus */
+    background-image:
+      radial-gradient(120% 70% at 50% -8%, color-mix(in srgb,var(--cyan) 12%,transparent), transparent 60%),
+      radial-gradient(120% 60% at 50% 112%, color-mix(in srgb,var(--amber) 8%,transparent), transparent 60%);
+    background-attachment:fixed;
+  }
+  .mono{font-family:var(--font-mono)}
+
+  /* ---- Circuits: fixed hairline-grid backdrop, radial-masked to fade ---- */
+  .circuits{position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0 63px, color-mix(in srgb,var(--cyan) 14%,transparent) 63px 64px),
+      repeating-linear-gradient(90deg, transparent 0 63px, color-mix(in srgb,var(--cyan) 14%,transparent) 63px 64px);
+    -webkit-mask-image:radial-gradient(80% 70% at 50% 30%, #000 40%, transparent 100%);
+    mask-image:radial-gradient(80% 70% at 50% 30%, #000 40%, transparent 100%);
+    opacity:.5}
+
+  /* ---- Ambient health tint (motion pass 2) — the room's lighting tracks
+     worst-of-fleet. Reuses the SAME registered --eye-col the lamp animates
+     (declared below; @property registration isn't order-dependent) so the
+     backdrop and the lamp glide through the exact same oklch state colors —
+     one health->color source, not a second one to keep in sync. Static per
+     state (no pulse of its own — the lamp already carries "alive"); very
+     low alpha so it tints the room without fighting panel contrast. */
+  .ambient-tint{position:fixed; inset:0; z-index:0; pointer-events:none;
+    transition:--eye-col 1.4s var(--ease-out);
+    background:
+      radial-gradient(120% 70% at 50% -10%, color-mix(in oklch, var(--eye-col) 7%, transparent), transparent 60%),
+      radial-gradient(120% 60% at 50% 110%, color-mix(in oklch, var(--eye-col) 5%, transparent), transparent 60%)}
+
+  /* ---- Signature 2: nexus device frame + scan-line --------------------- */
+  .nexus{position:relative; z-index:1; max-width:1220px;
+    margin:26px auto; border:1px solid var(--bezel); border-radius:16px;
+    background:linear-gradient(180deg,var(--stone-2),var(--stone));
+    box-shadow:0 0 0 1px rgba(0,0,0,.6),
+      inset 0 0 60px -20px color-mix(in srgb,var(--cyan) 40%,transparent),
+      0 30px 80px -40px #000;
+    padding:10px}
+  .screen{position:relative; overflow:clip; border-radius:9px;
+    background:radial-gradient(140% 90% at 50% 0%, var(--stone-2), var(--panel) 80%);
+    border:1px solid var(--line)}
+  /* One-shot refresh scan. JS adds .scan-pass only after a changed
+     generated_at snapshot has fully reconciled into the page. The line never
+     loops, cannot intercept input, and stays below the sticky mobile header. */
+  .screen::after{content:""; position:absolute; left:0; right:0; top:-28px;
+    height:28px; z-index:19; pointer-events:none; opacity:0;
+    background:linear-gradient(180deg,transparent,
+      color-mix(in srgb,var(--cyan) 12%,transparent) 35%,
+      color-mix(in srgb,var(--cyan) 72%,transparent) 70%,transparent);
+    box-shadow:0 6px 18px -9px var(--cyan)}
+  .screen.scan-pass::after{animation:nexus-scan-pass 2.2s linear 1}
+  @keyframes nexus-scan-pass{
+    0%{top:-28px; opacity:0}
+    5%{opacity:.9}
+    95%{opacity:.9}
+    100%{top:100%; opacity:0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .screen.scan-pass::after{animation:none}
+  }
+
+  /* ---- Signature 1: Fleet eye (fleet-status emblem) ------------------ */
+  header{display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+    padding:20px 26px; border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg, color-mix(in srgb,var(--cyan) 5%,transparent), transparent)}
+  .eye{width:58px; height:58px; flex:0 0 auto;
+    filter:drop-shadow(0 0 10px color-mix(in srgb,var(--stcol) 70%,transparent))}
+  .eye .frame{stroke:var(--stcol); stroke-width:5; fill:none}
+  .eye .iris{fill:var(--stcol)}
+  .eye .lash{fill:var(--stcol)}
+  .eye .scanbar{fill:#fff; opacity:.9; animation:eyescan 4.2s ease-in-out infinite}
+  @keyframes eyescan{
+    0%,100%{transform:translateX(-10px); opacity:.15}
+    50%{transform:translateX(10px); opacity:.95}}
+
+  /* ---- Living lamp: the overall-eye breathes (2026-07-16 motion pass) --
+     #overall-eye/#overall-lamp are the SINGLE fleet-health rollup (not the
+     generic .eye/.lamp used elsewhere), so the breathing + oklch color glide
+     are scoped by id — no blast radius onto seat dots/node chips. --eye-col
+     is a registered <color> (oklch, set per accent class above) so a state
+     change (ok->warn->crit) glides through color instead of snapping; the
+     breath RATE itself is state-driven via --eye-dur (slow ok, urgent crit). */
+  @property --eye-col{ syntax:'<color>'; inherits:true; initial-value:oklch(40% 0.03 210) }
+  @property --eye-glow{ syntax:'<number>'; inherits:false; initial-value:.6 }
+  #overall-eye, #overall-lamp{
+    transition:--eye-col .6s var(--ease-out);
+    animation:lampbreathe var(--eye-dur,3.6s) ease-in-out infinite;
+  }
+  #overall-eye{
+    filter:drop-shadow(0 0 calc(8px + 6px*var(--eye-glow)) var(--eye-col));
+  }
+  #overall-eye .nexus-eye-mark{fill:var(--eye-col)}
+  #overall-lamp{
+    background:var(--eye-col);
+    box-shadow:0 0 calc(8px + 8px*var(--eye-glow)) -1px var(--eye-col);
+  }
+  @keyframes lampbreathe{
+    0%,100%{--eye-glow:.55; opacity:.9}
+    50%{--eye-glow:1; opacity:1}
+  }
+  /* Blink (motion pass 2) — personality, ok-state only: warn/crit already
+     read as "pay attention" via their faster pulse, so layering a blink on
+     top there would read as distraction, not liveliness. Two irregular dips
+     per ~9s cycle (not evenly spaced at 0%/50%) is what makes it read as a
+     blink instead of a metronome — the asymmetric offsets stand in for
+     per-instance randomization since there's exactly one lamp to stagger. */
+  @keyframes eyeblink{
+    0%,4%,8%,41%,45%,100%{transform:scaleY(1)}
+    6%,43%{transform:scaleY(.08)}
+  }
+  @keyframes lampblink{
+    0%,4%,8%,41%,45%,100%{transform:rotate(45deg) scaleY(1)}
+    6%,43%{transform:rotate(45deg) scaleY(.08)}
+  }
+  #overall-eye.developed{
+    transform-origin:50% 50%;
+    animation:lampbreathe var(--eye-dur,3.6s) ease-in-out infinite,
+      eyeblink 9.2s ease-in-out infinite;
+  }
+  #overall-wrap.developed #overall-lamp{
+    transform-origin:50% 50%;
+    animation:lampbreathe var(--eye-dur,3.6s) ease-in-out infinite,
+      lampblink 9.2s ease-in-out infinite;
+  }
+  .titles{display:flex; flex-direction:column; gap:3px; min-width:0}
+  .eyebrow{font-size:11px; text-transform:uppercase; letter-spacing:.22em;
+    color:var(--ink-dim)}
+  header h1{font-family:var(--font-display); font-weight:900;
+    font-size:clamp(24px,3.6vw,38px); letter-spacing:.01em; margin:0; color:var(--ink)}
+  .overall{display:flex; align-items:center; gap:12px; margin-left:auto;
+    flex-wrap:wrap; justify-content:flex-end}
+  .scan-control{min-height:38px; padding:4px 14px; border-radius:7px;
+    border:1px solid color-mix(in srgb,var(--cyan) 55%,var(--line));
+    background:color-mix(in srgb,var(--cyan) 8%,transparent); color:var(--cyan);
+    font:700 11px/1 var(--font-mono);
+    text-transform:uppercase; letter-spacing:.16em; cursor:pointer;
+    box-shadow:0 0 12px -8px var(--cyan)}
+  .scan-control:hover{border-color:var(--cyan)}
+  .scan-control:disabled{cursor:wait; opacity:.65}
+  .lamp{width:12px; height:12px; transform:rotate(45deg);
+    background:var(--stcol); box-shadow:0 0 12px -1px var(--stcol)}
+  .overall .label{font-size:12px; text-transform:uppercase; letter-spacing:.18em;
+    color:var(--stcol)}
+  .overall .stamp{font-size:12px; color:var(--ink-dim)}
+  .overall .clock{font-size:13px; color:var(--cyan);
+    padding:3px 9px; border:1px solid var(--line); border-radius:5px}
+  /* ---- Header bell: always visible (outside .tools, like #overall-wrap) -- */
+  .bell{position:relative; display:inline-flex; align-items:center; justify-content:center;
+    width:38px; height:38px; min-height:38px; padding:0; border-radius:8px;
+    font-size:17px; line-height:1; color:var(--ink); background:transparent;
+    border:1px solid var(--line); cursor:pointer; text-decoration:none}
+  .bell:hover{border-color:var(--cyan)}
+  .bell.is-active{color:var(--cyan); border-color:color-mix(in srgb,var(--cyan) 55%,var(--line));
+    background:color-mix(in srgb,var(--cyan) 8%,var(--stone))}
+  .bell-count{position:absolute; top:-4px; right:-4px; min-width:16px; height:16px;
+    padding:0 4px; border-radius:100px; background:var(--red); color:#fff;
+    font-size:10px; font-weight:700; line-height:16px; text-align:center;
+    box-shadow:0 0 0 2px var(--stone-2)}
+  .bell-health-dot{position:absolute; bottom:-2px; left:-2px; width:10px; height:10px;
+    border-radius:100px; background:var(--amber);
+    box-shadow:0 0 0 2px var(--stone-2), 0 0 8px -1px var(--amber)}
+  /* ---- Header watchdog link: low-emphasis entry to the separate,
+     read-only /watchdogs inventory surface (PANEL-4). Same tap-target box
+     as the bell for accessibility, but muted (dim border/icon, reduced
+     opacity, no cyan hover) so it reads as a quiet reference link, not a
+     live action control like the bell. */
+  .watchdog-link{position:relative; display:inline-flex; align-items:center;
+    justify-content:center; width:38px; height:38px; min-height:38px;
+    padding:0; border-radius:8px; font-size:15px; line-height:1;
+    color:var(--ink-dim); background:transparent; border:1px solid var(--line);
+    opacity:.7; text-decoration:none}
+  .watchdog-link:hover{opacity:1; border-color:var(--rune-dim)}
+  .gemini-link{position:relative; display:inline-flex; align-items:center;
+    justify-content:center; width:38px; height:38px; min-height:38px;
+    padding:0; border-radius:8px; font-size:22px; line-height:1;
+    color:var(--cyan); background:transparent; border:1px solid var(--line);
+    text-decoration:none}
+  .gemini-link:hover{border-color:var(--cyan)}
+
+  /* ---- Header controls wrapper (bell+warning ticker) -------------------
+     `display:contents` makes this wrapper transparent to the flex layout —
+     desktop/tablet leaves the bell as an effective direct flex child. The ≤640px phone
+     breakpoint below turns it into a real flex row. */
+  .header-controls{display:contents}
+
+  /* ---- Main grid ------------------------------------------------------- */
+  main{padding:26px 26px 54px}
+  .contact{display:grid; gap:18px;
+    grid-template-columns:repeat(auto-fill,minmax(272px,1fr))}
+  /* Keep the machine row aligned with the four cloud-seat columns without
+     changing heartbeat/probe order or canonical node identity. */
+  #node-charlie{order:1}
+  #node-delta{order:2}
+  #node-worker2{order:3}
+  #node-echo{order:4}
+
+  /* ---- Model routing/quota strip + peer worker availability row ---------- */
+  /* These summaries align visually with Charlie, Delta, Alpha, and Localworker;
+     the columns do not bind a node to the provider above it. */
+  .model-usage-strip{position:relative; margin:0 0 14px; overflow:hidden;
+    background:var(--stone-2); border-radius:6px;
+    box-shadow:inset 0 0 0 1px var(--line)}
+  .model-usage-strip::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;
+    background:var(--amber);box-shadow:0 0 9px var(--amber);opacity:.88}
+  .model-usage-strip-head{display:flex;align-items:center;gap:14px;
+    padding:11px 14px 10px 16px;border-bottom:1px solid var(--line)}
+  .model-usage-strip-head > div{display:flex;align-items:baseline;gap:9px;min-width:0}
+  .model-usage-strip-head h2{margin:0;color:var(--amber);
+    font:600 16px/1 var(--font-display);text-transform:lowercase}
+  .model-usage-strip-head > div > span,.model-usage-updated{
+    color:var(--ink-dim);font:600 9px/1.2 var(--mono);
+    letter-spacing:.11em;text-transform:uppercase}
+  .model-usage-updated{margin-left:auto;letter-spacing:.035em;text-transform:none}
+  .model-usage-more{color:var(--ink-dim);font:600 9px/1 var(--mono);
+    letter-spacing:.08em;text-transform:uppercase;text-decoration:none;white-space:nowrap}
+  .model-usage-more:hover{color:var(--cyan)}
+  .model-usage-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+  .model-route-summary,.model-provider-summary{min-width:0;padding:12px 14px 13px;
+    display:flex;flex-direction:column}
+  .model-route-summary + .model-provider-summary,
+  .model-provider-summary + .model-provider-summary{border-left:1px solid var(--line)}
+  .model-panel-title{display:flex;align-items:center;gap:7px;min-width:0;
+    margin-bottom:10px}
+  .model-panel-title b{color:var(--text);font:700 16px/1 var(--sans)}
+  .model-panel-title time{margin-left:auto;color:var(--ink-faint);
+    font:600 9px/1 var(--mono);white-space:nowrap}
+  .provider-mark{width:9px;height:9px;border-radius:3px;background:var(--provider);
+    box-shadow:0 0 7px color-mix(in srgb,var(--provider) 35%,transparent)}
+  .model-provider-summary.claude{--provider:#df9b68}
+  .model-provider-summary.codex{--provider:#55d9d5}
+  .model-provider-summary.gemini{--provider:#80aef1}
+  .model-quota-line{display:grid;grid-template-columns:4.4rem minmax(42px,1fr) 2.1rem;
+    align-items:center;gap:8px;margin:8px 0;
+    color:var(--ink-dim);font:600 11px/1.1 var(--mono)}
+  .model-quota-line > span{white-space:nowrap}
+  .model-quota-line > i{height:6px;overflow:hidden;border-radius:999px;
+    background:color-mix(in srgb,var(--line) 82%,transparent)}
+  .model-quota-line > i > u{display:block;height:100%;min-width:2px;border-radius:inherit;
+    background:var(--provider);text-decoration:none}
+  .model-quota-line > b{color:var(--text);text-align:right}
+  .model-quota-line > em{grid-column:2 / 4;color:var(--ink-dim);
+    font-style:normal}
+  /* Keep source/recommendation evidence compact and complete. Auto top margin
+     pins every footer to the common card baseline; wrapping is a narrow-width
+     fallback rather than silently replacing evidence with an ellipsis. */
+  .model-route-summary p,.model-provider-summary p{margin:auto 0 0;padding-top:10px;
+    overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere;
+    color:var(--ink-faint);font-family:var(--mono);font-size:8px;
+    font-weight:600;line-height:1.25;letter-spacing:.015em;
+    -webkit-text-size-adjust:none;text-size-adjust:none}
+  .model-panel-title .route-mark{color:var(--amber);font-size:10px}
+  .model-route-list{display:grid;gap:7px;margin-top:10px}
+  .model-route-line{display:grid;grid-template-columns:3.7rem minmax(0,1fr) auto;
+    align-items:center;gap:7px;font-family:var(--mono);font-size:9px;
+    font-weight:600;line-height:1.2;
+    letter-spacing:.045em;text-transform:uppercase}
+  .model-route-line span{overflow:hidden;color:var(--ink-dim)}
+  .model-route-line b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    color:var(--text)}
+  .model-route-line em{font-style:normal}
+  .model-route-line em.state-green{color:var(--green)}
+  .model-route-line em.state-yellow{color:var(--amber)}
+  .model-route-line em.state-red{color:var(--red)}
+  .model-route-line.selected b{color:var(--amber)}
+
+  .seatstrip{display:grid; gap:14px; margin:0 0 20px;
+    grid-template-columns:repeat(4,minmax(184px,1fr));
+    grid-template-areas:"charlie delta alpha localworker"}
+  .seat-tile{--sc:var(--rune-dim); position:relative; background:var(--stone-2);
+    min-height:132px;border-radius:6px; padding:12px 14px 13px; overflow:hidden;
+    box-shadow:inset 0 0 0 1px var(--line)}
+  .seat-tile.delta{--sc:var(--cyan); view-transition-name:seat-delta; grid-area:delta}
+  .seat-tile.alpha{--sc:var(--green); view-transition-name:seat-alpha; grid-area:alpha}
+  .seat-tile.charlie{--sc:var(--amber); view-transition-name:seat-charlie; grid-area:charlie}
+  .seat-tile.localworker{--sc:#10b981; view-transition-name:seat-localworker; grid-area:localworker;
+    box-shadow:inset 0 0 0 1px color-mix(in srgb,#10b981 32%,var(--line))}
+  .seat-tile.died{--sc:var(--red)}
+  .seat-tile::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:var(--sc); box-shadow:0 0 8px 0 var(--sc); opacity:.85}
+  /* a live run pulses its edge; idle/finished sits still */
+  .seat-tile.busy::before, .seat-tile.local::before{
+    animation:edgebreathe 2.6s ease-in-out infinite}
+  .seat-head{display:flex; align-items:baseline; gap:8px; margin-bottom:6px}
+  .seat-usage-more{margin-left:auto;color:var(--ink-dim);font:600 9px/1 var(--mono);
+    letter-spacing:.08em;text-transform:uppercase;text-decoration:none;white-space:nowrap}
+  .seat-usage-more:hover{color:var(--cyan)}
+  .seat-tile.has-model .seat-head{padding-right:142px}
+  .seat-name{font-family:var(--font-display); font-weight:600; font-size:16px;
+    color:var(--sc); line-height:1}
+  .seat-sub{font-size:10px; text-transform:uppercase; letter-spacing:.12em;
+    color:var(--ink-dim)}
+  .seat-primary{font-size:12px; color:var(--ink-dim); line-height:1.35;
+    min-height:1.35em; word-break:break-word}
+  .seat-primary .seat-tok{color:var(--ink); opacity:.75}
+  .seat-primary a.seat-tok-link{color:inherit; text-decoration:none;
+    border-bottom:1px solid color-mix(in srgb,var(--cyan) 22%,transparent)}
+  .seat-primary a.seat-tok-link:hover .seat-tok{opacity:1}
+  .seat-primary a.seat-tok-link:hover{border-bottom-color:var(--cyan)}
+  .seat-provider{font-size:10px; color:var(--ink-faint); line-height:1.35;
+    margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .seat-model-badge{position:absolute; top:9px; right:10px; z-index:2;
+    display:flex; align-items:center; gap:4px; width:fit-content; max-width:136px;
+    height:22px; min-width:0; overflow:hidden; padding:0 7px 0 5px;
+    border-radius:999px; -webkit-text-size-adjust:100%; text-size-adjust:100%;
+    border:1px solid color-mix(in srgb,var(--model-color) 55%,var(--line));
+    background:color-mix(in srgb,var(--model-color) 13%,var(--stone-2));
+    color:var(--text); box-shadow:0 0 9px color-mix(in srgb,var(--model-color) 14%,transparent)}
+  .seat-model-badge.claude{--model-color:#d97757}
+  .seat-model-badge.codex{--model-color:#10a37f}
+  .seat-model-badge.gemini{--model-color:#8ab4f8}
+  .seat-model-badge.local{--model-color:#a7f3d0}
+  .seat-model-badge.unknown{--model-color:var(--ink-dim)}
+  .seat-model-logo{flex:0 0 auto; color:var(--model-color);
+    font-family:var(--font-mono); font-size:10px;
+    font-weight:700; line-height:1; text-shadow:0 0 7px currentColor}
+  .seat-model-name{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    font-family:var(--font-mono); font-size:8px;
+    font-weight:700; line-height:1; letter-spacing:.025em}
+  .seat-badge{display:inline-block; margin-top:9px; font-size:10px;
+    text-transform:uppercase; letter-spacing:.16em; padding:2px 10px; border-radius:4px;
+    border:1px solid var(--line); color:var(--ink-dim)}
+  /* FREE reads dim/neutral (above); BUSY lit in the seat color; DIED red.
+     Busy/local badges also carry a moving highlight sheen (2026-07-16 motion
+     pass) — a registered <percentage> driving the gradient's middle stop, so
+     it's a real compositor-friendly animated property, not a background-
+     position hack. */
+  @property --shimmer-pos{ syntax:'<percentage>'; inherits:false; initial-value:-40% }
+  .seat-tile.busy .seat-badge, .seat-tile.local .seat-badge{
+    background:var(--sc); color:var(--panel); border-color:var(--sc);
+    background-image:linear-gradient(90deg, transparent 0%,
+      color-mix(in srgb, white 55%, var(--sc)) var(--shimmer-pos), transparent 65%);
+    animation:seatshimmer var(--dur-shimmer) linear infinite}
+  @keyframes seatshimmer{ from{--shimmer-pos:-40%} to{--shimmer-pos:140%} }
+  .seat-tile.died .seat-badge{
+    background:var(--red); color:var(--panel); border-color:var(--red)}
+  /* inline-progress bar — long INLINE build work (Worker1 swap-remainder etc.), fed
+     from heartbeats/inline/<seat>.json. Reuses the jobs-panel bar look (track +
+     shimmering fill + pbarshimmer keyframe) but seat-colored via --sc, and
+     compact (8px) so it sits under the primary line on both desktop & mobile. */
+  .seat-prog{margin-top:9px}
+  .seat-prog .sp-bar{position:relative; height:8px; border-radius:3px;
+    background:color-mix(in srgb,var(--panel) 60%,var(--stone));
+    box-shadow:inset 0 0 0 1px var(--line)}
+  .seat-prog .sp-bar > i{position:absolute; left:0; top:0; bottom:0; border-radius:3px;
+    background:linear-gradient(90deg, color-mix(in srgb,var(--sc) 55%,transparent), var(--sc));
+    box-shadow:0 0 10px -2px var(--sc);
+    animation:pbarshimmer 2.6s ease-in-out infinite;
+    /* ETA/median fill springs to its new width each refresh instead of
+       snapping (2026-07-16 motion pass) — width is compositor-unfriendly
+       but this bar is small/isolated (not a layout-thrashing risk at this
+       scale) and matches the jobs-panel bar it's modeled on. */
+    transition:width var(--dur-morph) var(--ease-spring)}
+  .seat-prog .sp-legend{display:flex; justify-content:space-between; gap:8px;
+    align-items:baseline; font-size:11px; color:var(--ink-dim); margin-top:4px}
+  .seat-prog .sp-legend b{color:var(--ink); font-weight:600}
+  .seat-prog .sp-rate{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .seat-prog .sp-label{color:var(--sc); opacity:.85}
+  @media (max-width:760px){
+    .model-usage-grid{grid-template-columns:1fr 1fr}
+    .model-provider-summary.gemini{border-top:1px solid var(--line)}
+    .model-provider-summary.codex{border-left:0;border-top:1px solid var(--line)}
+    .seatstrip{grid-template-columns:1fr 1fr;
+      grid-template-areas:"charlie delta" "alpha localworker"}
+    .seat-tile.has-model .seat-head{padding-right:124px}
+    .seat-model-badge{top:9px; right:8px; gap:3px; max-width:118px;
+      height:20px; padding:0 6px 0 4px}
+    .seat-model-logo{font-size:9px}
+    .seat-model-name{font-size:7px; letter-spacing:.015em}
+  }
+  @media (max-width:380px){
+    .model-usage-grid{grid-template-columns:1fr}
+    .model-route-summary + .model-provider-summary,
+    .model-provider-summary + .model-provider-summary{border-left:0;border-top:1px solid var(--line)}
+    .seatstrip{grid-template-columns:1fr;
+      grid-template-areas:"charlie" "delta" "alpha" "localworker"}
+  }
+
+  .frame-head{display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px; border-bottom:1px solid var(--line)}
+  .node-name{font-family:var(--font-display); font-weight:600; font-size:19px;
+    letter-spacing:.01em; color:var(--ink)}
+  .chip{font-size:10px; text-transform:uppercase; letter-spacing:.14em;
+    padding:3px 9px; border-radius:4px; border:1px solid var(--line); color:var(--ink-dim)}
+  .chip.developed,.chip.safelight,.chip.overexposed{
+    color:var(--stcol); border-color:color-mix(in srgb,var(--stcol) 55%,transparent);
+    box-shadow:0 0 12px -3px var(--stcol)}
+  .chip.unexposed{color:var(--ink-dim)}
+
+  .probes{list-style:none; margin:0; padding:6px 16px 15px}
+  .probe{display:grid; grid-template-columns:auto 1fr auto; gap:11px;
+    align-items:baseline; padding:8px 0; border-bottom:1px dotted var(--line)}
+  .probe:last-child{border-bottom:0}
+  /* probe dots = 8px squares rotated 45deg, pulsing */
+  .dot{width:8px; height:8px; transform:rotate(45deg); align-self:center;
+    background:var(--stcol); box-shadow:0 0 6px -1px var(--stcol);
+    animation:dotpulse 3s ease-in-out infinite}
+  .dot.safelight{animation-duration:1.8s}
+  .dot.overexposed{animation-duration:1s}
+  .dot.unexposed{animation:none; box-shadow:none}
+  @keyframes dotpulse{0%,100%{opacity:.45}50%{opacity:1}}
+  .kind{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-dim)}
+  .value{font-size:13px; text-align:right; color:var(--ink)}
+  .detail{grid-column:2/4; font-size:12px; color:var(--ink-dim); margin-top:-2px}
+
+  /* sparklines, when a panel carries them */
+  .spark path,.spark polyline{stroke:var(--stcol); fill:none;
+    filter:drop-shadow(0 0 3px color-mix(in srgb,var(--cyan) 70%,transparent))}
+
+  /* ---- Health timeline: 24h summary + stepped per-node bands (HEALTH-
+     TIMELINE-2, supersedes the T1-1 sparkline strip). Each segment/row
+     carries a plain accent class (.developed/.safelight/.overexposed/
+     .unexposed) so color rides --stcol for free, same language as every
+     other Fleet surface — no new palette. Deliberately NOT wired to
+     panel-reveal's scroll-linked view()-timeline entrance: this module's
+     body is replaced by JS on every poll, and a scroll-driven animation's
+     backwards-fill can leave a dynamically-reflowed element stuck at its
+     0%-keyframe opacity if the browser's entry/cover range was computed
+     against stale geometry. Explicit base opacity:1 + no animation on the
+     body means the timeline is guaranteed visible the instant it renders,
+     on any browser, regardless of scroll position. */
+  .timeline-strip{display:flex; flex-direction:column; gap:10px; margin:0 0 20px; opacity:1}
+  .ht-summary{margin:0 0 14px; opacity:1}
+  .ht-summary-row{display:flex; flex-wrap:wrap; gap:10px 22px;
+    background:var(--stone-2); border-radius:6px; padding:12px 16px;
+    box-shadow:inset 0 0 0 1px var(--line)}
+  .ht-stat{display:flex; flex-direction:column; gap:2px; min-width:78px}
+  .ht-stat b{font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ink)}
+  .ht-stat span{font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-dim)}
+
+  .ht-row{position:relative; background:var(--stone-2); border-radius:6px;
+    padding:10px 14px 8px; box-shadow:inset 0 0 0 1px var(--line)}
+  .ht-row-head{display:flex; align-items:baseline; flex-wrap:wrap; gap:8px 12px; margin:0 0 8px}
+  .ht-name{font-family:var(--font-display); font-weight:600; font-size:14px;
+    color:var(--ink); margin-right:auto}
+  .ht-chip{font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--stcol)}
+  .ht-metric{font-size:11px; color:var(--ink-dim); white-space:nowrap}
+
+  .ht-band-wrap{position:relative}
+  .ht-band{display:flex; width:100%; height:22px; border-radius:3px;
+    overflow:hidden; background:var(--panel); touch-action:pan-y}
+  .ht-seg{background:var(--stcol); opacity:.9}
+  .ht-seg + .ht-seg{border-left:1px solid color-mix(in srgb, var(--panel) 60%, transparent)}
+  /* Gap/unknown segments (missing expected cadence) get a hatch on top of
+     .unexposed's dim color — visibly distinct from a probe that ran and
+     genuinely came back unknown, never just a stretched-out OK. */
+  .ht-seg-gap{opacity:.55;
+    background-image:repeating-linear-gradient(135deg, var(--stcol) 0 3px, transparent 3px 6px)}
+  .ht-ticks{display:flex; justify-content:space-between; font-size:9px;
+    text-transform:uppercase; letter-spacing:.1em; color:var(--ink-dim); margin:3px 1px 0}
+
+  .ht-readout{position:absolute; top:-4px; z-index:5; pointer-events:none;
+    transform:translate(-50%,-100%); white-space:nowrap;
+    background:var(--stone-2); border:1px solid var(--line); border-radius:4px;
+    padding:3px 8px; font-size:11px; color:var(--ink); letter-spacing:.01em;
+    box-shadow:0 4px 14px -6px #000, inset 0 0 0 1px var(--line);
+    opacity:0; visibility:hidden}
+  .ht-readout.show{opacity:1; visibility:visible}
+  @media (prefers-reduced-motion:no-preference){
+    .ht-readout{transition:opacity .12s var(--ease-out)}
+  }
+
+  .ht-details-toggle{margin-top:8px; font-size:11px}
+  .ht-details-toggle summary{cursor:pointer; color:var(--ink-dim);
+    text-transform:uppercase; letter-spacing:.1em; font-size:10px; list-style:none}
+  .ht-details-toggle summary::-webkit-details-marker{display:none}
+  .ht-details-toggle summary::before{content:"▸ "}
+  .ht-details-toggle[open] summary::before{content:"▾ "}
+  .ht-details-grid{display:grid; grid-template-columns:auto 1fr; gap:4px 10px;
+    margin:8px 0 2px; font-size:11.5px}
+  .ht-details-grid dt{color:var(--ink-dim); text-transform:uppercase;
+    font-size:9.5px; letter-spacing:.08em}
+  .ht-details-grid dd{margin:0; color:var(--ink)}
+
+  @media (max-width:640px){
+    .ht-summary-row{gap:8px 16px; padding:10px 12px}
+    .ht-stat{min-width:64px}
+    .ht-row-head{gap:6px 10px}
+    .ht-metric{font-size:10px}
+  }
+  @media (max-width:400px){
+    .ht-summary-row{gap:6px 12px; padding:8px 10px}
+    .ht-stat{min-width:44%}
+    .ht-stat b{font-size:14px}
+    .ht-row{padding:8px 10px 6px}
+    .ht-name{font-size:13px}
+    .ht-metric:nth-child(4){display:none}  /* "stable for" — first to go at the narrowest width */
+  }
+
+  /* ---- Section headers ------------------------------------------------- */
+  .section-title{display:flex; align-items:baseline;
+    margin:44px 0 4px; flex-wrap:wrap}
+  .section-title h2{font-family:var(--font-display); font-weight:900;
+    font-size:clamp(18px,2.4vw,25px); letter-spacing:.01em; margin:0; color:var(--ink)}
+  .section-rule{height:1px; margin:10px 0 20px;
+    background:linear-gradient(90deg, var(--cyan-deep), transparent)}
+
+  /* ---- "the work" panels ---------------------------------------------- */
+  .frame.work::before{background:var(--cyan-deep)}
+  .frame.work.safelight::before{background:var(--stcol)}
+  .frame.work.overexposed::before{background:var(--stcol)}
+  .worklist{list-style:none; margin:0; padding:8px 16px 15px}
+  .worklist li{padding:8px 0; border-bottom:1px dotted var(--line)}
+  .worklist li:last-child{border-bottom:0}
+  .wl-title{display:block; font-family:var(--font-display); font-weight:600;
+    font-size:15px; line-height:1.35; color:var(--ink)}
+  /* clickable work items link into the wiki; keep them typographically calm */
+  .worklist a.wl-link{color:inherit; text-decoration:none;
+    border-bottom:1px solid color-mix(in srgb,var(--cyan) 22%,transparent)}
+  .worklist a.wl-link:hover{color:var(--cyan); border-bottom-color:var(--cyan)}
+  .wl-sub{display:block; font-size:12px; color:var(--ink-dim); margin-top:2px}
+  .wl-date{font-size:11px; color:var(--cyan); margin-right:8px}
+  .wl-slug{font-size:11px; color:var(--ink-dim)}
+  .wl-seat{font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-dim)}
+  .state-done{color:var(--cyan)} .state-running{color:var(--amber)}
+  .state-died{color:var(--red)}
+  .stat{display:flex; flex-direction:column}
+  .stat b{font-size:22px; color:var(--ink)}
+  .stat span{font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-dim)}
+  .subhead{font-size:10px; text-transform:uppercase; letter-spacing:.14em;
+    color:var(--ink-dim); padding:10px 16px 0}
+
+  .empty{color:var(--ink-dim); font-style:italic; padding:40px 0}
+
+  /* ---- GPU-job heartbeat panel (video-cull scan) ---------------------- */
+  /* Prominent full-width cell, its own row at the top of the board. Status
+     color rides --stcol like every Fleet surface: running=cyan (developed),
+     stalled=amber (safelight), done=cyan (developed, dimmed), ended/unknown=
+     rune-dim (unexposed). */
+  /* Two-column layout shared by the jobs and Worker Activity columns. Job-row
+     card chrome itself (disclosure summary, jobbody, pbar/queue-strip/jobstats/
+     prog/job-* /markdone) now lives in static/jobs.css, linked by this page too
+     (FLEET-WORKER2-BUILD-20260721-panel-dashboard-compact-jobs) — one shared
+     source instead of a second divergent copy. */
+  /* 2x2 (jobs / worker activity / compendium), DOM order matching
+     visual order (FLEET-WORKER2-BUILD-20260731-panel-dashboard-two-column-
+     cards): same repeat(2,minmax(0,1fr)) + 22px gap as .activity-dashboard-
+     grid below, so all four cards share that section's column width instead
+     of a cramped 4-across row. align-items:stretch equalizes row height
+     across the pair in each row (a short card no longer renders a stub next
+     to a tall one). */
+  .jh-cols{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; align-items:stretch}
+  .jh-col{min-width:0}
+  .jh-col > .section-title{margin-top:0}
+  .jh-scroll{height:var(--module-h); min-height:0; max-height:none; overflow-y:auto; overflow-x:hidden; padding-right:6px; scrollbar-width:thin; box-shadow:inset 0 -1px var(--line)}
+  .jh-module-fit{height:var(--module-h); min-height:0; max-height:none;
+    overflow:hidden; box-shadow:inset 0 -1px var(--line)}
+  @media (min-width:901px){
+    .jh-col{display:grid; grid-template-rows:64px 31px var(--module-h)}
+    .jh-col > .section-title{display:grid; grid-template-columns:minmax(0,1fr) auto;
+      grid-template-rows:auto; align-content:center; column-gap:8px;
+      height:64px; margin:0; overflow:hidden}
+    .jh-col > .section-title h2{grid-column:1; grid-row:1; white-space:nowrap;
+      overflow:hidden; text-overflow:ellipsis; font-family:var(--font-display);
+      font-size:25px; line-height:1.05; font-weight:900; letter-spacing:.01em}
+    .jh-col > .section-title .navlink{grid-column:2; grid-row:1;
+      align-self:center; margin-left:0!important; padding:3px 8px;
+      font-size:10px; line-height:1.2}
+    .jh-col > .section-rule{margin:10px 0 20px}
+  }
+  /* Primary and secondary text use one shared module scale. This keeps Jobs,
+     Worker Activity and Compendium visually equivalent even though
+     their data structures differ. */
+  .jh-jobs .job-summary-id .node-name,
+  .jh-path .wl-title,
+  .jh-semantic-index .cx-fields .value,
+    font-family:var(--font-mono);
+    font-size:13px; line-height:1.35; font-weight:600; letter-spacing:0}
+  .jh-jobs .job-host,
+  .jh-jobs .job-age,
+  .jh-path .wl-sub,
+  .jh-semantic-index .cx-age,
+  .jh-semantic-index .cx-fields .kind,
+    font-family:var(--font-mono);
+    font-size:11px; line-height:1.4}
+  /* The 2x2 grid roughly doubles each card's width, so job titles may wrap
+     inside the bounded evidence body. Scoped to .jh-jobs so this never
+     reaches jobs.css's shared /jobs standalone-page styling. */
+  .jh-jobs .job-summary-id .node-name,
+  .jh-jobs .job-last{
+    white-space:normal; overflow:visible; text-overflow:clip}
+  @media (max-width:900px){
+    .jh-cols{grid-template-columns:1fr; gap:6px}
+    .jh-scroll,.jh-module-fit{height:auto; min-height:0; max-height:none;
+      overflow:visible; box-shadow:none}
+  }
+  /* ---- Compendium module (compact status tile) — reuses .chip's existing
+     developed/safelight/overexposed/unexposed state colors, no new palette. */
+  .cx-status{display:flex; align-items:center; gap:10px; margin-bottom:8px}
+  .cx-age{font-size:11px; color:var(--ink-dim)}
+  .cx-fields{list-style:none; margin:0; padding:0}
+  .cx-fields li{display:flex; align-items:baseline; justify-content:space-between;
+    gap:11px; padding:5px 0; border-bottom:1px dotted var(--line)}
+  .cx-fields li:last-child{border-bottom:0}
+  .cx-fields .value{font-size:13px; color:var(--ink)}
+  /* ---- Fleet Activity dashboard modules ------------------------------- */
+  .activity-dashboard-grid,.operations-dashboard-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:22px; margin-top:44px}
+  .dash-activity-body{padding:10px 12px; overflow-x:hidden}
+  .dam-metrics{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px}
+  .dam-metric{min-width:0; min-height:44px; padding:6px 7px; border-radius:5px;
+    background:color-mix(in srgb,var(--stone-2) 84%,var(--panel));
+    display:flex; flex-direction:column; justify-content:space-between}
+  .dam-metric span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    color:var(--ink-dim); font:500 11px/1.15 var(--font-ui)}
+  .dam-metric b{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    color:var(--ink); font:650 13px/1.1 var(--font-mono);
+    font-variant-numeric:tabular-nums}
+  .dam-heat{display:grid; grid-template-columns:repeat(53,minmax(0,1fr));
+    grid-template-rows:repeat(7,minmax(0,1fr)); grid-auto-flow:column;
+    gap:2px; width:100%; margin-top:10px}
+  .dam-cell{display:block; min-width:0; aspect-ratio:1; border-radius:1px;
+    background:color-mix(in srgb,var(--line) 62%,var(--panel))}
+  .dam-cell.unknown{opacity:.32}
+  .dam-cell.level-1{background:color-mix(in srgb,var(--cyan) 32%,var(--line))}
+  .dam-cell.level-2{background:color-mix(in srgb,var(--cyan) 52%,var(--line))}
+  .dam-cell.level-3{background:color-mix(in srgb,var(--cyan) 74%,var(--line))}
+  .dam-cell.level-4{background:var(--cyan)}
+  .dam-summary{margin:9px 0 0; color:var(--ink-dim);
+    font:500 11px/1.35 var(--font-ui)}
+  .dam-summary b{color:var(--ink); font-weight:650}
+  .dam-chart{height:154px; display:flex; align-items:flex-end; gap:3px;
+    padding:8px 0 15px; border-bottom:1px solid var(--line);
+    background:repeating-linear-gradient(to top,transparent 0,
+      transparent calc(25% - 1px),color-mix(in srgb,var(--line) 42%,transparent) 25%)}
+  .dam-stack{height:100%; flex:1 1 0; min-width:2px; display:flex;
+    flex-direction:column-reverse; justify-content:flex-start; overflow:hidden;
+    border-radius:2px 2px 0 0}
+  .dam-stack i{display:block; width:100%; flex:0 0 auto}
+  .dam-stack .claude,.dam-swatch.claude{background:#d99a6c}
+  .dam-stack .openai,.dam-swatch.openai{background:var(--cyan)}
+  .dam-stack .google,.dam-swatch.google{background:#7ca9f5}
+  .dam-legend{display:grid; gap:4px; margin-top:9px}
+  .dam-provider{display:grid; grid-template-columns:minmax(76px,.55fr) 1fr auto;
+    align-items:center; gap:8px; color:var(--ink-dim);
+    font:500 11px/1.25 var(--font-ui)}
+  .dam-provider-name{display:flex; align-items:center; gap:6px; color:var(--ink)}
+  .dam-swatch{width:7px; height:7px; border-radius:2px; flex:0 0 auto}
+  .dam-provider-detail{text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dam-provider-share{min-width:38px; text-align:right; color:var(--ink);
+    font-variant-numeric:tabular-nums}
+  .dam-provider.unavailable .dam-provider-detail,
+  .dam-provider.unavailable .dam-provider-share{color:var(--ink-dim); opacity:.58}
+  .dam-error{color:var(--red); font:500 11px/1.4 var(--font-ui)}
+  @media(max-width:900px){
+    .activity-dashboard-grid,.operations-dashboard-grid{grid-template-columns:1fr; gap:6px; margin-top:30px}
+    .dash-activity-body{min-height:0}
+  }
+  @media(max-width:520px){
+    .dam-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .dam-chart{height:132px}
+    .dam-provider{grid-template-columns:minmax(76px,.7fr) 1fr auto}
+    .dam-heat{gap:1px}
+  }
+
+  /* ---- Fleet operations dashboard modules ---------------------------- */
+  .ops-module-body{padding:10px 12px;overflow-x:hidden}
+  .ops-module-body.jh-module-fit{overflow:hidden}
+  @media(max-width:900px){
+    .ops-module-body.jh-module-fit{overflow:visible}
+  }
+  .control-plane-card{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .control-plane-chip{display:grid;grid-template-columns:auto 1fr;gap:5px 8px;align-items:center;
+    min-width:0;padding:10px;border:1px solid var(--line);border-radius:6px;text-decoration:none;
+    background:color-mix(in srgb,var(--stone-2) 84%,var(--panel));color:var(--ink)}
+  .control-plane-chip:hover{border-color:var(--cyan-deep)}
+  .control-plane-chip strong{font-size:12px;text-transform:lowercase;overflow:hidden;text-overflow:ellipsis}
+  .control-plane-chip small{grid-column:1/-1;color:var(--ink-dim);font-size:10px;line-height:1.35;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  .control-plane-foot{margin-top:8px;text-align:right;color:var(--ink-dim);font-size:10px}
+  @media(max-width:430px){.control-plane-card{grid-template-columns:1fr}}
+
+  .conformance-summary-card{display:flex;flex-direction:column;gap:12px;
+    padding:14px;border:1px solid var(--line);border-radius:6px;
+    background:color-mix(in srgb,var(--stone-2) 84%,var(--panel));
+    font:500 12px/1.4 var(--font-ui);color:var(--ink-dim)}
+  .conformance-summary-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .conformance-headline{color:var(--ink);font-weight:600;font-size:13px}
+  .conformance-breakdown{color:var(--amber);font-size:11px}
+  .conformance-chips-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:4px 0}
+  .conformance-chip{display:flex;justify-content:space-between;align-items:center;gap:6px;
+    padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:var(--bg);
+    font-size:11px;color:var(--ink-dim)}
+  .conformance-chip .chip-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .conformance-chip .chip-title-short{display:none}
+  .conformance-chip .chip-count{font-weight:600;color:var(--cyan)}
+  .conformance-chip.has-issues{border-color:color-mix(in srgb,var(--amber) 50%,transparent);background:color-mix(in srgb,var(--amber) 8%,var(--bg))}
+  .conformance-chip.has-issues .chip-count{color:var(--amber)}
+  .conformance-stability{font-size:11px;color:var(--ink-dim);margin:2px 0 0}
+  .conformance-summary-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding-top:6px;border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent);
+    font-size:11px;color:var(--ink-dim);flex-wrap:wrap}
+  @media(max-width:640px){
+    .conformance-chips-grid{grid-template-columns:repeat(2,1fr)}
+  }
+  /* iPhone width: stay two-column (never collapse to one) but swap to short
+     category labels so neither column's text gets clipped. */
+  @media(max-width:430px){
+    .conformance-chips-grid{grid-template-columns:repeat(2,1fr)}
+    .conformance-chip .chip-title-full{display:none}
+    .conformance-chip .chip-title-short{display:inline}
+  }
+  /* Dashboard Health is a dense, complete projection: six summary signals
+     plus every monitored host fit inside --module-h. Exact causes and the
+     larger 24-hour evidence view remain available through More. */
+  .ops-health .ht-summary{margin-bottom:6px}
+  .ops-health .ht-summary-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:3px 8px;padding:6px 9px}
+  .ops-health .ht-stat{display:grid;grid-template-columns:auto minmax(0,1fr);
+    align-items:baseline;gap:4px;min-width:0}
+  .ops-health .ht-stat b{font-size:12px;white-space:nowrap}
+  .ops-health .ht-stat span{font-size:7px;line-height:1.1;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .ops-health .timeline-strip{gap:5px;margin-bottom:0}
+  .ops-health .ht-row{padding:5px 8px 4px}
+  .ops-health .ht-row-head{display:grid;grid-template-columns:minmax(70px,1fr) auto auto auto;
+    gap:6px;margin-bottom:4px;align-items:baseline}
+  .ops-health .ht-name{min-width:0;font-size:12px;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .ops-health .ht-chip{font-size:8px}
+  .ops-health .ht-metric{font-size:8px}
+  .ops-health .ht-metric:nth-child(n+5){display:none}
+  .ops-health .ht-band{height:10px}
+  .ops-health .ht-ticks,.ops-health .ht-details-toggle{display:none}
+  .watchdog-summary-lead{display:flex;align-items:baseline;gap:10px;padding:12px 14px;
+    border:1px solid var(--line);border-radius:6px;
+    background:color-mix(in srgb,var(--stone-2) 84%,var(--panel))}
+  .watchdog-summary-lead strong{font:700 28px/1 var(--font-display);color:var(--cyan)}
+  .watchdog-summary-lead span{color:var(--ink-dim);font-size:11px;text-transform:uppercase;letter-spacing:.1em}
+  .watchdog-summary-list{list-style:none;margin:10px 0 0;padding:0}
+  .watchdog-summary-list li{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;
+    padding:11px 4px;border-bottom:1px dotted var(--line);font-size:11px}
+  .watchdog-host{color:var(--ink);font:600 13px/1.2 var(--font-ui)}
+  .watchdog-count{color:var(--ink-dim)}
+  .watchdog-flagged{color:var(--cyan)}
+  .watchdog-flagged.has-flags{color:var(--amber)}
+  .watchdog-summary-note{margin:12px 2px 0;color:var(--ink-dim);font-size:10px;line-height:1.45}
+  @media(max-width:430px){
+    .watchdog-summary-list li{grid-template-columns:1fr auto}
+    .watchdog-flagged{grid-column:2}
+  }
+
+  /* ---- Console / scheduler strip -------------------------------------- */
+  .console{display:flex; align-items:center; justify-content:space-between;
+    gap:16px; margin-top:32px; padding-top:18px;
+    border-top:1px solid var(--line); flex-wrap:wrap}
+  .schedule{font-size:12px; color:var(--ink-dim)}
+  .schedule b{color:var(--cyan); font-weight:600}
+  button{font-size:12px; text-transform:uppercase; letter-spacing:.14em;
+    color:var(--panel); background:var(--cyan); border:0; border-radius:5px;
+    padding:10px 18px; cursor:pointer; font-family:inherit}
+  button:hover{filter:brightness(1.1)}
+  button:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
+  button:disabled{opacity:.5; cursor:progress}
+  /* button.markdone now lives in static/jobs.css (shared .job-actions/.markdone
+     with the dashboard's compact job rows) — see the jh-cols comment above. */
+
+  @media (prefers-reduced-motion:no-preference){
+    .frame{transition:box-shadow .25s ease}
+    .lamp,.dot{transition:background .25s ease}
+  }
+  /* Sheet-open shared-element morph (2026-07-16 motion pass) — spring settle
+     from the shared token instead of the UA-default ease. Scoped to the one
+     name openSheet() assigns; every other view-transition-named element
+     (seat tiles) keeps the UA default cross-fade/resize, which already
+     reads fine for a small in-place swap. */
+  ::view-transition-group(sheet-morph){
+    animation-duration:var(--dur-morph);
+    animation-timing-function:var(--ease-spring);
+  }
+  /* ---- Spring press (motion pass 2) — every real tappable gets ONE shared
+     scale-down press state from the spring token, board-wide, instead of
+     each surface inventing its own :active feel (a few already had a plain
+     opacity dip — push-btn/push-device — this is additive to those, not a
+     replacement). Transform only (compositor-cheap); the blanket reduced-
+     motion rule below strips it like every other transition here. */
+  button, .bell, .wt-chip, .wt-lead, .seat-tile,
+  .frame[data-sheet-route], #contact .frame{
+    transition:transform .12s var(--ease-spring);
+  }
+  button:active, .bell:active, .wt-chip:active, .wt-lead:active,
+  .seat-tile:active, .frame[data-sheet-route]:active, #contact .frame:active{
+    transform:scale(.96);
+  }
+
+  /* ---- Board-wide staggered panel reveals (motion pass 2) — each top-level
+     panel (fleet nodes, seat strip, timeline, jobs, the work,
+     scan log) gets a gentle translate+fade entrance the first time it
+     scrolls into view, --i staggered so panels near each other on a tall
+     viewport don't all pop in the same frame. Deliberately NOT a
+     view()-timeline (that's the sparkline/hero-path pattern for
+     content genuinely below the fold at load) — animation-timeline:view()
+     is unsupported in exactly the same browsers where animation-timeline is
+     invalid outright, and an invalid animation-timeline falls back to the
+     default document timeline, so unsupported clients still get the
+     entrance once on load rather than nothing — the panel is never stuck
+     invisible either way. Reduced-motion clients never get `animation` set
+     at all here, so they render at their un-animated base opacity (1) —
+     never the keyframe's 0% start point. */
+  @media (prefers-reduced-motion:no-preference){
+    .panel-reveal{
+      animation:panelreveal .5s var(--ease-out) both;
+      animation-timeline:view();
+      animation-range:entry 0% cover 25%;
+      animation-delay:calc(var(--i,0) * 70ms);
+    }
+  }
+  @keyframes panelreveal{ from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none} }
+
+  /* a11y: all deliberate motion collapses */
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important; transition:none!important}
+    /* ::view-transition-* pseudo-elements live in their own top-layer tree —
+       the universal selector above never reaches them, and the UA's default
+       view-transition cross-fade does NOT auto-respect this preference. The
+       JS feature-detect already skips startViewTransition() entirely when
+       reduced motion is on, so this is defense-in-depth for the rare case a
+       transition is still mid-flight when the preference flips mid-session. */
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*){
+      animation:none!important;
+    }
+  }
+
+  /* T5: pause decorative CSS animations while the tab/PWA is hidden — the
+     central polling controller (dashboard.js) toggles .page-hidden on <html>
+     via visibilitychange. animation-play-state only (not animation:none),
+     so a paused animation resumes from where it left off rather than
+     restarting; transitions (event-driven, not continuous) are untouched.
+     Independent of, and composes fine with, the reduced-motion collapse
+     above — a reduced-motion client already has no `animation` set to
+     pause in the first place. */
+  html.page-hidden *{animation-play-state:paused!important}
+
+  /* ===================================================================== */
+  /* GLANCE-FIRST MOBILE LAYER                                              */
+  /* Recognized by VIEWPORT + CAPABILITIES (media / hover:none), never by   */
+  /* User-Agent. Desktop (>1024px) is untouched — every rule below is gated */
+  /* behind a max-width query. One responsive codebase, one template.       */
+  /* ===================================================================== */
+
+  /* Warning ticker — the mobile-only headline of fleet state, now living in  */
+  /* header row 2 (right of the bell, inside .header-controls) rather than a */
+  /* standalone row below the header. Hidden on desktop; shown ≤640px.        */
+  /* Server-rendered for first paint AND rebuilt by warnTickerHTML() on each  */
+  /* /api/status refresh so it never diverges.                                */
+  .warnticker{display:none}
+  .navtoggle{display:none}
+  .wt-lead{flex:0 0 auto; display:inline-flex; align-items:center; gap:8px;
+    text-decoration:none; padding:7px 12px; border-radius:8px; min-height:36px;
+    background:var(--stone-2); box-shadow:inset 0 0 0 1px var(--line)}
+  .wt-lead .lamp{width:10px; height:10px}
+  .wt-lead-word{font-size:12px; text-transform:uppercase;
+    letter-spacing:.14em; color:var(--stcol); font-weight:600; white-space:nowrap}
+  .wt-viewport{flex:1 1 auto; min-width:0; height:36px; display:flex; align-items:center;
+    overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:thin}
+  .wt-ok-msg{display:inline-flex; align-items:center; min-height:36px;
+    font-size:12px; color:var(--ink-dim); letter-spacing:.02em; white-space:nowrap}
+  .wt-ok-msg b{color:var(--cyan); font-weight:600; margin-right:6px}
+  .wt-track{display:flex; align-items:center}
+  .wt-list{display:flex; align-items:center; gap:8px; flex:0 0 auto; padding-right:8px}
+  .wt-dup{display:none}
+  .wt-chip{--stcol:var(--amber); display:inline-flex; align-items:center; gap:6px;
+    text-decoration:none; padding:7px 11px; border-radius:100px; min-height:36px;
+    font-size:11.5px; color:var(--ink); letter-spacing:.01em; white-space:nowrap;
+    background:color-mix(in srgb,var(--stcol) 14%,var(--stone-2));
+    box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--stcol) 45%,transparent)}
+  .wt-chip .wt-sym{color:var(--stcol); font-weight:700}
+  .wt-chip.crit{--stcol:var(--red)}
+  .wt-chip.warn{--stcol:var(--amber)}
+  .wt-chip.unknown{--stcol:var(--rune-dim)}
+
+  /* Scroll animation gated behind prefers-reduced-motion:no-preference (repo */
+  /* convention, see the .panel-reveal/.ht-readout blocks above) — the        */
+  /* baseline above (overflow-x:auto, .wt-dup hidden, no animation) IS the    */
+  /* reduced-motion state: a static, swipeable, single-copy list, every       */
+  /* warning still discoverable. Only revealed here, and only once            */
+  /* layoutWarnTicker() (dashboard.js) finds the real list actually overflows */
+  /* its viewport width — a short list (e.g. one warning) just sits static,   */
+  /* never an "awkward" loop of near-nothing. Direction is the conventional   */
+  /* RIGHT-TO-LEFT marquee (items enter right, exit left): the keyframes run  */
+  /* start-shifted at 0% toward -50%. */
+  @media (prefers-reduced-motion:no-preference){
+    .wt-viewport{overflow:hidden}
+    .wt-track.wt-scrolling .wt-dup{display:flex}
+    .wt-track.wt-scrolling{animation:wt-scroll-rtl var(--wt-dur,18s) linear infinite}
+  }
+  @keyframes wt-scroll-rtl{ from{transform:translateX(0%)} to{transform:translateX(-50%)} }
+
+  /* ---- Touch T3: bottom-sheet chrome, gated OFF here (desktop/iPad byte- */
+  /* identical) and turned on ONLY inside the phone breakpoint below. The   */
+  /* sheet is a direct child of <body>, sibling to .nexus — refresh()'s six */
+  /* innerHTML replaces never touch it (see recon §2/§8.2). -------------- */
+  .sheet-backdrop,.sheet{display:none}
+
+  /* ---- Tablet (641–1024): gentle density, still multi-column ----------- */
+  @media (max-width:1024px){
+    .nexus{margin:16px auto; max-width:100%}
+    main{padding:22px 18px 44px}
+    .contact{grid-template-columns:repeat(auto-fill,minmax(228px,1fr))}
+  }
+
+  /* ---- Phone (≤640): glance-first, condensed, single column ------------ */
+  @media (max-width:640px){
+    html,body{overflow-x:clip}            /* prevent spill without trapping sticky */
+    .circuits{display:none}               /* drop the heavy hairline backdrop */
+    .nexus{margin:8px; padding:6px; border-radius:12px;
+      box-shadow:0 0 0 1px rgba(0,0,0,.6), 0 12px 40px -28px #000}
+    .screen{border-radius:8px}
+    main{padding:14px 12px 44px}
+
+    /* ---- compact content inside the shared persistent glass shell ---- */
+    header{gap:10px; row-gap:8px; padding:12px 14px;
+      padding-top:calc(12px + env(safe-area-inset-top,0px))}
+    .eye{width:30px; height:30px}
+    .titles .eyebrow{display:none}
+    header h1{font-size:clamp(17px,5vw,21px)}
+    .overall{gap:8px; margin-left:auto}
+    .overall .stamp{display:none}
+    .overall .label{font-size:10px; letter-spacing:.1em}
+    .overall .clock{font-size:11px; padding:2px 6px}
+    header > .searchbox{flex-basis:100%; width:100%; margin-left:0}
+    header > .searchbox input[type=search]{width:100%}
+    /* nav + search collapse behind the menu toggle */
+    .navtoggle{display:inline-flex; align-items:center; justify-content:center;
+      width:42px; height:42px; min-height:42px; padding:0; border-radius:8px;
+      font-size:18px; letter-spacing:0; color:var(--cyan);
+      background:transparent; border:1px solid var(--line)}
+    .bell{width:42px; height:42px; min-height:42px}
+    .watchdog-link{width:42px; height:42px; min-height:42px}
+    .gemini-link{width:42px; height:42px; min-height:42px}
+    header .tools{display:none; flex-basis:100%; width:100%; margin-left:0;
+      flex-direction:column; gap:8px; padding-top:8px;
+      border-top:1px dotted var(--line)}
+    header.nav-open .tools{display:flex}
+    header .tools .navlink{display:flex; align-items:center; min-height:44px; padding:2px}
+    header .tools .searchbox{width:100%}
+
+    /* ---- header row 2: bell (left) + warning ticker (right) -------------- */
+    /* .header-controls stops being transparent here and becomes its own full-
+       width flex row, with the ticker filling the space beside the bell. */
+    .header-controls{display:flex; flex-basis:100%; width:100%;
+      align-items:center; gap:10px}
+    .warnticker{display:flex; flex:1 1 auto; min-width:0; align-items:center; gap:8px}
+
+    /* ---- one-column, condensed everything ---- */
+    .contact{grid-template-columns:1fr; gap:12px}
+    .model-usage-strip-head{align-items:flex-start;flex-wrap:wrap}
+    .model-usage-updated{order:3;flex-basis:100%;margin-left:0}
+    .model-usage-more{margin-left:auto}
+    .model-usage-grid{grid-template-columns:1fr}
+    .model-route-summary + .model-provider-summary,
+    .model-provider-summary + .model-provider-summary{border-left:0;border-top:1px solid var(--line)}
+    .seatstrip{grid-template-columns:1fr; gap:10px;
+      grid-template-areas:"worker3" "worker1" "worker2" "localworker"}
+    .section-title{margin:26px 0 4px}
+
+    /* condensed cards: tighter padding, smaller type */
+    .frame-head{padding:11px 13px}
+    .node-name{font-size:16px}
+    .probes{padding:2px 12px 10px}
+    .probe{padding:6px 0; gap:9px}
+    .value{font-size:12px}
+    .cell{min-height:66px; padding:13px 13px 12px}
+
+    /* scroll targets clear the sticky header when a ticker chip jumps to them */
+    #contact .frame,#jobstable,#modelUsageStrip,#seatstrip{scroll-margin-top:70px}
+
+    /* ---- tap-to-expand: collapse the verbose detail lines on phone ---- */
+    /* Hidden until the card's header is tapped (.expanded, set by JS). Node   */
+    /* cards only — job cards use native <details>/<summary> disclosure now    */
+    /* (static/jobs.css), not this class-based toggle. */
+    #contact .frame .detail{display:none}
+    #contact .frame.expanded .detail{display:block}
+    /* affordance: a chevron that rotates when the card is open */
+    #contact .frame > .frame-head{cursor:pointer; padding-right:34px; position:relative}
+    #contact .frame > .frame-head::after{content:"▸"; position:absolute;
+      right:14px; top:50%; transform:translateY(-50%); color:var(--ink-dim);
+      font-size:12px; transition:transform .15s ease}
+    #contact .frame.expanded > .frame-head::after{
+      transform:translateY(-50%) rotate(90deg)}
+
+    /* Compact visible Scan control restores header symmetry. Its invisible
+       pseudo-element preserves an approximately 44px touch target. */
+    .scan-control{position:relative; min-height:34px; padding:3px 8px;
+      border-radius:6px; font-size:9px; letter-spacing:.12em}
+    .scan-control::before{content:""; position:absolute; inset:-5px -6px}
+    .console{gap:12px}
+
+    /* keep long tokens/values/paths from forcing horizontal scroll. .job-last
+       is covered by the identical grouped rule in static/jobs.css (now linked
+       here too) — not repeated in this list to avoid a duplicate selector. */
+    .seat-primary,.wl-title,.wl-sub,.value,.detail{
+      overflow-wrap:anywhere; word-break:break-word}
+
+    /* ---- Touch T3: bottom sheet over the 6 deep-link detail routes ---- */
+    /* z-index 40/41 sits above the sticky mobile header (20) and every-   */
+    /* thing else (nothing else on the page exceeds 20 — recon §4).       */
+    .sheet-backdrop{display:block; position:fixed; inset:0; z-index:40;
+      background:rgba(0,0,0,.55); opacity:0; pointer-events:none;
+      transition:opacity .22s ease}
+    .sheet-backdrop.open{opacity:1; pointer-events:auto}
+    .sheet{display:flex; flex-direction:column; position:fixed;
+      left:0; right:0; bottom:0; z-index:41; max-height:88vh;
+      background:var(--stone); border-radius:16px 16px 0 0;
+      box-shadow:0 -14px 44px -14px rgba(0,0,0,.65), inset 0 0 0 1px var(--line);
+      padding-bottom:env(safe-area-inset-bottom,0px);
+      transform:translateY(100%); transition:transform .28s cubic-bezier(.22,.8,.24,1)}
+    .sheet.dragging{transition:none}
+    .sheet.open{transform:translateY(0)}
+    .sheet-handle{flex:0 0 auto; display:flex; justify-content:center;
+      padding:10px 0 6px; touch-action:none; cursor:grab}
+    .sheet-grip{width:36px; height:4px; border-radius:2px; background:var(--line)}
+    .sheet-close{position:absolute; top:6px; right:6px; width:44px; height:44px;
+      min-height:44px; display:flex; align-items:center; justify-content:center;
+      font-size:16px; line-height:1; color:var(--ink-dim); background:transparent;
+      border:0; border-radius:8px}
+    .sheet-close:active{background:var(--stone-2); color:var(--ink)}
+    .sheet-body{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
+      padding:2px 16px 24px; overscroll-behavior:contain}
+  }
+
+  /* No-hover devices: expand/collapse is TAP; nothing hover-dependent. */
+  @media (hover:none){
+    .worklist a.wl-link:hover{color:inherit; border-bottom-color:
+      color-mix(in srgb,var(--cyan) 22%,transparent)}
+    .navlink:hover{color:inherit}
+  }
+
+  /* ---- PWA standalone shell (Phase 0 / T0) --------------------------------
+     Inert until the Nexus is installed to the Home Screen (display-mode only
+     matches then) — desktop and any browser tab render byte-identical to
+     before this block existed. See panel-touch-redesign.md §I.2 +
+     panel-notifications-design.md §F Phase 0. Full T0/T1 touch reflow (bottom
+     nav, sheets, hover-purge audit) is deferred to the touch track. */
+  @media (display-mode: standalone){
+    :root{
+      --state-ok:var(--cyan); --state-info:var(--cyan-deep);
+      --state-warn:var(--amber); --state-crit:var(--red);
+    }
+    /* NOT 100dvh (iOS cold-start bug), NOT 100% (defeats viewport-fit:cover) */
+    html,body{height:100vh; margin:0}
+    header{padding-top:calc(8px + env(safe-area-inset-top))}
+    .tools,.bottom-nav{padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+    .sheet.full{padding-top:calc(12px + env(safe-area-inset-top))}
+    .nexus,.screen{
+      padding-left:env(safe-area-inset-left);
+      padding-right:env(safe-area-inset-right);
+    }
+    a,button,.navlink,.navtoggle,.frame-head{touch-action:manipulation}
+    a:active,button:active,.navlink:active,.navtoggle:active,
+    .frame-head:active{opacity:.65}
+  }

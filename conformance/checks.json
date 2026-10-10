@@ -1,0 +1,268 @@
+{
+  "version": 2,
+  "manifest_revision": "CONFORMANCE-POLICY-2026-09-29.1",
+  "categories": [
+    {
+      "key": "agents",
+      "title": "Operating contract (agents)",
+      "short_title": "Contract",
+      "description": "Verification of bounded agent contract hashes across target hosts."
+    },
+    {
+      "key": "ssh",
+      "title": "Worker access (ssh)",
+      "short_title": "SSH",
+      "description": "Direct inter-host SSH accessibility and credential health."
+    },
+    {
+      "key": "service",
+      "title": "Required services (service)",
+      "short_title": "Services",
+      "description": "Required systemd services and timers, including live and startup state."
+    },
+    {
+      "key": "path",
+      "title": "Required files (path)",
+      "short_title": "Files",
+      "description": "Presence of critical configuration files and manifests."
+    },
+    {
+      "key": "receipts",
+      "title": "Automation receipts (receipts)",
+      "short_title": "Receipts",
+      "description": "Structured bounded success receipts for scheduled fleet work."
+    },
+    {
+      "key": "fresh",
+      "title": "Snapshot freshness (fresh)",
+      "short_title": "Snapshots",
+      "description": "Age verification for control-plane backup archives."
+    },
+    {
+      "key": "mirror",
+      "title": "Vault mirror (mirror)",
+      "short_title": "Mirror",
+      "description": "Git HEAD alignment between the live Vault corpus and its off-host mirror."
+    },
+    {
+      "key": "governance",
+      "title": "Control plane (governance)",
+      "short_title": "Governance",
+      "description": "The five central indexes and their authoritative parity, routing, lint, and adoption validators."
+    }
+  ],
+  "hosts": [
+    "charlie",
+    "delta",
+    "macbook"
+  ],
+  "informational_hosts": [
+    "macbook"
+  ],
+  "agent_contract": {
+    "linux_path": "/home/david/AGENTS.md",
+    "macbook_path": "/Users/davidgomez/AGENTS.md"
+  },
+  "ssh_edges": [
+    [
+      "charlie",
+      "delta"
+    ],
+    [
+      "charlie",
+      "macbook"
+    ],
+    [
+      "delta",
+      "charlie"
+    ],
+    [
+      "delta",
+      "macbook"
+    ]
+  ],
+  "user_units": [
+    [
+      "charlie",
+      "charlie-primary-tower.service",
+      "active"
+    ],
+    [
+      "charlie",
+      "charlie-primary-nexus.service",
+      "active"
+    ],
+    [
+      "charlie",
+      "charlie-primary-compendium-ota.service",
+      "active"
+    ],
+    [
+      "charlie",
+      "nexus-model-usage.timer",
+      "active"
+    ],
+    [
+      "charlie",
+      "nexus-activity.timer",
+      "active"
+    ],
+    [
+      "delta",
+      "fleet-vault-lint.timer",
+      "active"
+    ],
+    [
+      "delta",
+      "fleet-vault-git-commit.timer",
+      "active"
+    ],
+    [
+      "charlie",
+      "charlie-primary-control-plane-backup.timer",
+      "active"
+    ],
+    [
+      "charlie",
+      "fleet-git-push.timer",
+      "active"
+    ],
+    [
+      "delta",
+      "fleet-memory-export.timer",
+      "active"
+    ],
+    [
+      "charlie",
+      "nexus-conformance.timer",
+      "active"
+    ],
+    [
+      "delta",
+      "fleet-git-push.timer",
+      "active"
+    ]
+  ],
+  "enablement_units": [
+    [
+      "charlie",
+      "charlie-primary-tower.service"
+    ],
+    [
+      "charlie",
+      "charlie-primary-nexus.service"
+    ],
+    [
+      "charlie",
+      "charlie-primary-compendium-ota.service"
+    ],
+    [
+      "charlie",
+      "nexus-model-usage.timer"
+    ],
+    [
+      "charlie",
+      "nexus-activity.timer"
+    ],
+    [
+      "delta",
+      "fleet-vault-lint.timer"
+    ],
+    [
+      "delta",
+      "fleet-vault-git-commit.timer"
+    ],
+    [
+      "charlie",
+      "charlie-primary-control-plane-backup.timer"
+    ],
+    [
+      "charlie",
+      "fleet-git-push.timer"
+    ],
+    [
+      "delta",
+      "fleet-memory-export.timer"
+    ],
+    [
+      "charlie",
+      "nexus-conformance.timer"
+    ],
+    [
+      "delta",
+      "fleet-git-push.timer"
+    ]
+  ],
+  "required_paths": [
+    [
+      "charlie",
+      "/home/david/.config/fleet/fleet-git-repos.json",
+      "file"
+    ],
+    [
+      "delta",
+      "/home/david/.config/fleet/fleet-git-repos.json",
+      "file"
+    ],
+    [
+      "charlie",
+      "/home/david/Vaults/homelab-vault/tools/bin/control_plane_offhost_sync.py",
+      "file"
+    ],
+    [
+      "delta",
+      "/home/david/Vaults/homelab-vault/tools/bin/control_plane_offhost_sync.py",
+      "file"
+    ],
+    [
+      "charlie",
+      "/home/david/.config/systemd/user/charlie-primary-compendium-ota.service",
+      "file"
+    ],
+    [
+      "charlie",
+      "/data/primary/alpha/active/apps/compendium-ota/manifest.plist",
+      "file"
+    ],
+    [
+      "charlie",
+      "/data/primary/alpha/active/apps/compendium-ota/CompendiumBridge.ipa",
+      "file"
+    ]
+  ],
+  "fresh_paths": [
+    [
+      "delta",
+      "/home/david/FleetDatabaseBackups/alpha-snapshots/latest",
+      93600
+    ],
+    [
+      "charlie",
+      "/home/david/FleetDatabaseBackups/charlie-snapshots/latest",
+      93600
+    ],
+    [
+      "delta",
+      "/home/david/FleetDatabaseBackups/charlie-snapshots/latest",
+      93600
+    ]
+  ],
+  "git_mirrors": [
+    [
+      "delta",
+      "/home/david/Vaults",
+      "charlie",
+      "/home/david/vaults-mirror.git"
+    ]
+  ],
+  "git_push_receipts": [
+    [
+      "charlie",
+      "/home/david/.local/state/fleet/fleet-git-push/latest.json"
+    ],
+    [
+      "delta",
+      "/home/david/.local/state/fleet/fleet-git-push/latest.json"
+    ]
+  ]
+}

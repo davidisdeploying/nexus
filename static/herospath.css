@@ -1,0 +1,142 @@
+/* ==========================================================================
+   Worker Activity — the CLI-over-the-shoulder session view.
+   Additive, isolated stylesheet: reuses nexus.css tokens (--cyan, --amber,
+   --ink, --line, --panel, --stone, --green…) and adds only the trail + row language.
+   ========================================================================== */
+/* Seat colors — match the scan log: Worker1 cyan, Worker5 amber, Worker2 green,
+   Worker3 amber, Localworker emerald, Worker4 gold (hex values match seatboard.py's SEAT_INFO /
+   dashboard.html's COLORS, the palette source of truth). */
+.seat-worker1{color:var(--cyan)}
+.seat-worker3{color:var(--amber)}
+.seat-worker2{color:var(--green)}
+.seat-localworker{color:#10b981}
+.seat-worker4{color:#f59e0b}
+
+/* ---- run list --------------------------------------------------------- */
+.hp-runlist{list-style:none; margin:0; padding:14px 22px 60px}
+.hp-runlist li{padding:12px 14px; border:1px solid var(--line); border-radius:8px;
+  margin-bottom:10px; background:color-mix(in srgb,var(--stone) 55%,transparent)}
+.hp-runlist a{color:var(--ink); text-decoration:none; font-family:var(--font-display);
+  font-weight:600; font-size:15px; word-break:break-all}
+.hp-runlist a:hover{color:var(--cyan)}
+.hp-run-meta{display:block; margin-top:5px; font-size:11px; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--ink-dim)}
+.hp-seat{font-weight:700; text-transform:uppercase}
+.hp-state-running{color:var(--amber)}
+.hp-state-done{color:var(--cyan)}
+.hp-state-died{color:var(--red)}
+.hp-empty,.hp-notfound{padding:22px; color:var(--ink-dim)}
+.hp-notfound code{color:var(--amber)}
+
+.hp-live-dot{display:inline-block; width:8px; height:8px; border-radius:50%;
+  background:var(--amber); box-shadow:0 0 8px var(--amber); vertical-align:middle;
+  margin-left:6px; animation:hp-pulse 1.4s ease-in-out infinite}
+@keyframes hp-pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ---- session scroll --------------------------------------------------- */
+.hp-meta-bar{padding:10px 22px; border-bottom:1px solid var(--line);
+  font-size:12px; color:var(--ink-dim); display:flex; gap:12px; align-items:center;
+  flex-wrap:wrap}
+.hp-loadearlier{display:block; text-align:center; padding:10px; margin:10px 22px 0;
+  border:1px dashed var(--line); border-radius:8px; color:var(--ink-dim);
+  text-decoration:none; font-size:12px}
+.hp-loadearlier:hover{color:var(--cyan); border-color:var(--cyan-deep)}
+.hp-omitted-notice{text-align:center; padding:8px 10px; margin:0 22px 10px;
+  border:1px dashed var(--line); border-radius:8px; color:var(--ink-dim);
+  font-size:11px; font-style:italic}
+
+/* the traced glowing trail down the left (worker event sequence) */
+.hp-scroll{position:relative; padding:14px 0 90px}
+.hp-scroll::before{content:""; position:absolute; left:26px; top:0; bottom:0; width:2px;
+  background:linear-gradient(180deg, transparent,
+    color-mix(in srgb,var(--cyan) 35%,transparent) 8%,
+    color-mix(in srgb,var(--cyan) 35%,transparent) 92%, transparent)}
+
+/* Section reveal (2026-07-16 motion pass): each record settles in as the
+   long transcript scrolls it into view. Base state (opacity:1, translate:0)
+   is the REST value — if animation-timeline:view() isn't supported the
+   declaration is dropped, animation-timeline falls back to auto, and the
+   fade just plays once on load instead (graceful, never hides a record). */
+.hp-row{position:relative; display:flex; gap:14px; padding:5px 22px 5px 0;
+  opacity:1; translate:0 0;
+  animation:hp-reveal .6s var(--ease-out,ease) both;
+  animation-timeline:view();
+  animation-range:entry 0% cover 30%;
+}
+@keyframes hp-reveal{ from{opacity:.4; translate:0 10px} to{opacity:1; translate:0 0} }
+.hp-node{position:relative; flex:0 0 auto; width:52px; display:flex; justify-content:center}
+.hp-node::before{content:""; width:9px; height:9px; border-radius:50%; margin-top:7px;
+  background:var(--rune-dim); box-shadow:0 0 0 3px var(--panel)}
+.hp-body{flex:1 1 auto; min-width:0}
+.hp-label{font-size:10px; text-transform:uppercase; letter-spacing:.14em;
+  color:var(--ink-dim); display:inline-block; margin-bottom:3px}
+
+/* node colors per event kind — the trail lights up as the run moves */
+.hp-text.hp-assistant .hp-node::before{background:var(--cyan);
+  box-shadow:0 0 9px var(--cyan),0 0 0 3px var(--panel)}
+.hp-text.hp-user .hp-node::before{background:var(--ink-dim)}
+.hp-thinking .hp-node::before{background:var(--rune-dim)}
+.hp-tooluse .hp-node::before{background:var(--amber)}
+.hp-toolresult .hp-node::before{background:var(--cyan-deep)}
+.hp-toolresult.hp-error .hp-node::before{background:var(--red)}
+.hp-result .hp-node::before{background:var(--green);
+  box-shadow:0 0 9px var(--green),0 0 0 3px var(--panel)}
+.hp-session .hp-node::before,.hp-task .hp-node::before{background:var(--line)}
+
+.hp-prose{white-space:pre-wrap; word-wrap:break-word; overflow-wrap:anywhere;
+  color:var(--ink); line-height:1.55}
+.hp-think-text{white-space:pre-wrap; word-wrap:break-word; overflow-wrap:anywhere;
+  font-style:italic; color:var(--ink-dim); opacity:.9; line-height:1.5}
+.hp-session,.hp-task{opacity:.7}
+.hp-meta{font-size:12px; color:var(--ink-dim)}
+
+/* collapsible tool blocks — closed by default so big outputs stay out of layout */
+.hp-tool{border:1px solid var(--line); border-radius:6px;
+  background:color-mix(in srgb,var(--stone) 45%,transparent)}
+.hp-tool summary{cursor:pointer; padding:6px 10px; list-style:none; display:flex;
+  gap:10px; align-items:center}
+.hp-tool summary::-webkit-details-marker{display:none}
+.hp-tool summary:hover{background:color-mix(in srgb,var(--cyan) 6%,transparent)}
+.hp-toolname{font-family:var(--font-mono); font-size:13px; color:var(--cyan)}
+.hp-error .hp-toolname{color:var(--red)}
+.hp-connector{font-size:11px; color:var(--ink-dim)}
+.hp-pre{margin:0; padding:10px 12px; border-top:1px solid var(--line);
+  white-space:pre-wrap; word-wrap:break-word; overflow-wrap:anywhere;
+  font-family:var(--font-mono); font-size:12px; color:var(--ink-dim);
+  max-height:440px; overflow:auto}
+.hp-error .hp-pre{color:color-mix(in srgb,var(--red) 75%,var(--ink))}
+.hp-drop{display:block; margin-top:6px; font-size:11px; font-style:italic; color:var(--amber)}
+
+/* jump-to-live pill */
+.hp-jump{position:fixed; right:calc(20px + env(safe-area-inset-right,0px));
+  bottom:calc(20px + env(safe-area-inset-bottom,0px)); z-index:30; padding:9px 15px;
+  border-radius:20px; border:1px solid var(--cyan-deep); background:var(--stone-2);
+  color:var(--cyan); font-family:var(--font-mono); font-size:12px;
+  cursor:pointer; display:none; box-shadow:0 4px 22px rgba(0,0,0,.55)}
+.hp-jump.show{display:block}
+.hp-jump:hover{border-color:var(--cyan); background:var(--bezel)}
+
+/* bottom-left board pill — thumb-reachable persistent nav back to the fleet
+   board, paired visually with .hp-jump on the opposite corner */
+.hp-board{position:fixed; left:calc(20px + env(safe-area-inset-left,0px));
+  bottom:calc(20px + env(safe-area-inset-bottom,0px)); z-index:30; padding:9px 15px;
+  border-radius:20px; border:1px solid var(--cyan-deep); background:var(--stone-2);
+  color:var(--cyan); font-family:var(--font-mono); font-size:12px;
+  text-decoration:none; display:block; box-shadow:0 4px 22px rgba(0,0,0,.55)}
+.hp-board:hover{border-color:var(--cyan); background:var(--bezel)}
+
+/* narrow ~380px: tighten the rail so the body has room */
+@media (max-width:420px){
+  .hp-node{width:32px}
+  .hp-scroll::before{left:16px}
+  .hp-row{gap:8px; padding-right:12px}
+  .hp-runlist{padding:12px 12px 50px}
+  .hp-meta-bar{padding:10px 12px}
+  .hp-loadearlier{margin:10px 12px 0}
+  /* two bottom pills at this width: shrink padding/offsets so board+jump
+     can't touch or overlap */
+  .hp-board,.hp-jump{padding:8px 12px; font-size:11px}
+  .hp-board{left:calc(10px + env(safe-area-inset-left,0px))}
+  .hp-jump{right:calc(10px + env(safe-area-inset-right,0px))}
+  .hp-board,.hp-jump{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+}

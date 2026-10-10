@@ -1,0 +1,131 @@
+{% import "_app_shell.html" as app_shell %}
+{% if not partial %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ job_id }} · job detail</title>
+{{ app_shell.app_icons() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+<link rel="stylesheet" href="/static/detail.css">
+</head>
+<body class="wiki-body">
+<div class="circuits"></div>
+<div class="nexus">
+<div class="screen">
+
+  <div class="wiki-head">
+    <a class="eye" href="/" title="Fleet board">
+      {{ app_shell.nexus_eye() }}
+    </a>
+    <a class="brand" href="/">
+      <h1>{{ job_id }}</h1>
+    </a>
+    <div class="tools"><a class="navlink" href="/">board</a></div>
+  </div>
+
+  {% if found %}
+  <div class="d-anchornav">
+    <a href="#phases">phases</a>
+    <a href="#gpus">gpus</a>
+    <a href="#summary">summary</a>
+  </div>
+  {% endif %}
+{% endif %}
+
+  <div class="detail-partial" id="detail-job">
+  {% if not found %}
+    <div class="d-section">
+      <div class="d-empty">no live job card for <code class="d-mono">{{ job_id }}</code> in the current sweep.</div>
+    </div>
+  {% else %}
+  {% set state_accent = {'running':'developed','stalled':'safelight','failed':'overexposed','done':'developed','ended':'unexposed','unknown':'unexposed'} %}
+  {% set ga = state_accent.get(job.state, 'unexposed') %}
+
+    <div class="d-section" id="phases">
+      <div class="d-section-title">phases — progress &amp; queues</div>
+      <p style="margin:0 0 12px">
+        <span class="d-chip {{ ga }}">{{ job.state }}</span>
+        {% if job.host %}<span style="margin-left:8px; color:var(--ink-dim)">{{ job.host }}</span>{% endif %}
+        {% if job.source %}<span style="margin-left:8px; color:var(--ink-dim)">· {{ job.source }}</span>{% endif %}
+      </p>
+      {% if job.total and job.done is defined %}
+      <div class="d-bar"><i style="width:{{ job.pct or 0 }}%"></i></div>
+      <p style="margin:0; font-size:13px">
+        <b>{{ '{:,}'.format(job.done) }}</b> / {{ '{:,}'.format(job.total) }}{% if job.unit %} {{ job.unit }}{% endif %}
+        <span style="color:var(--ink-dim)"> · {{ job.pct if job.pct is not none else '—' }}%</span>
+      </p>
+      {% else %}
+      <div class="d-empty">no done/total on this card yet.</div>
+      {% endif %}
+
+      {% if job.queues %}
+      <div style="margin-top:16px">
+        {% for q in job.queues %}
+        <div class="d-row">
+          <span class="d-row-label"><a class="navlink" href="/queues/{{ q.name }}" style="display:inline-block">{{ q.name }}</a></span>
+          <span class="d-row-bar"><span class="d-bar"><i style="width:{{ q.pct or 0 }}%"></i></span></span>
+          <span class="d-row-text">
+            {{ '{:,}'.format(q.done) }}/{{ '{:,}'.format(q.total) }} ({{ q.pct if q.pct is not none else '—' }}%)
+            {% if q.rate %} · ~{{ q.rate }}/min{% endif %}
+            {% if q.eta %} · ETA ~{{ q.eta }}m{% endif %}
+            {% if q.waiting is defined and q.waiting is not none %} · {{ '{:,}'.format(q.waiting) }} queued{% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="d-section" id="gpus">
+      <div class="d-section-title">gpus</div>
+      {% if job.gpus %}
+        {% for g in job.gpus %}
+        <div class="d-row">
+          <span class="d-row-label">{{ g.role or g.name }}</span>
+          <span class="d-row-bar"><span class="d-bar"><i style="width:{{ g.util or 0 }}%"></i></span></span>
+          <span class="d-row-text">
+            {% if 'ML' in (g.role or '') %}{{ g.util if g.util is not none else '—' }}% · {{ g.mem_used }}/{{ g.mem_total }}MB · {{ g.temp }}°
+            {% else %}enc {{ g.enc if g.enc is not none else '—' }}% · dec {{ g.dec if g.dec is not none else '—' }}% · {{ g.mem_used }}MB · {{ g.temp }}°{% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="d-empty">no GPU rows on this card.</div>
+      {% endif %}
+    </div>
+
+    <div class="d-section" id="summary">
+      <div class="d-section-title">summary — metrics &amp; heartbeat freshness</div>
+      <dl class="d-kv">
+        {% if job.rate is defined %}<dt>rate</dt><dd>{{ job.rate }} {{ job.unit or '' }}</dd>{% endif %}
+        {% if job.eta %}<dt>eta</dt><dd>{{ job.eta }}</dd>{% endif %}
+        {% if job.uptime %}<dt>uptime</dt><dd>{{ job.uptime }}</dd>{% endif %}
+        {% if job.beat_age %}<dt>last beat</dt><dd>{{ job.beat_age }}{% if job.beat_age_s is defined %} ({{ job.beat_age_s }}s){% endif %}</dd>{% endif %}
+        {% if job.detail %}<dt>detail</dt><dd>{{ job.detail }}</dd>{% endif %}
+        {% if job.message %}<dt>message</dt><dd class="d-mono">{{ job.message }}</dd>{% endif %}
+      </dl>
+      {% if job.metrics %}
+      <div style="margin-top:14px">
+        <dl class="d-kv">
+          {% for k, v in job.metrics.items() %}
+          <dt>{{ k|replace('_',' ') }}</dt><dd>{{ v }}</dd>
+          {% endfor %}
+        </dl>
+      </div>
+      {% endif %}
+    </div>
+
+  {% endif %}
+  </div>
+
+{% if not partial %}
+</div><!-- /screen -->
+</div><!-- /nexus -->
+</body>
+</html>
+{% endif %}

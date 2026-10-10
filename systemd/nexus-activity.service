@@ -1,0 +1,11 @@
+[Unit]
+Description=Collect bounded Nexus fleet activity cache
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=oneshot
+WorkingDirectory=%h/nexus
+UMask=0077
+Nice=10
+ExecStart=%h/nexus/.venv/bin/python %h/nexus/tools/collect_activity.py
+TimeoutStartSec=120
