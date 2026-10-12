@@ -1,0 +1,185 @@
+{# Shared compact job-row component — one <details>/<summary> disclosure row
+   per job heartbeat. Used verbatim by both the dedicated /jobs page and the
+   dashboard's left-column jobs panel (FLEET-WORKER2-BUILD-20260721-panel-
+   dashboard-compact-jobs) so the two never drift into divergent markup.
+   Styling lives in static/jobs.css, linked by both templates.
+
+   Params:
+     gj             - the job dict (see app/routes.py's jobs_summary/_jobs_raw)
+     ga             - accent class for this job's state (state_accent.get(...))
+     show_markdone  - dashboard-only: render the "mark done" action for a
+                      running/stalled job inside the expanded body. /jobs never
+                      passes this (defaults false) since it has no such control. #}
+{% macro job_row(gj, ga, show_markdone=false) %}
+<details class="frame work gpujob job-row {{ ga }}" data-sheet-route="/jobs/{{ gj.job|urlencode }}">
+  <summary class="job-summary">
+    <span class="job-summary-id">
+      <span class="node-name">{{ gj.job or 'job' }}</span>
+      {% if gj.host %}<span class="job-host">{{ gj.host }}</span>{% endif %}
+    </span>
+    <span class="job-summary-status">
+      {% if gj.total and gj.done is defined %}<span class="job-pct">{{ (gj.pct|jsnum) if gj.pct is not none else '—' }}%</span>{% endif %}
+      <span class="chip {{ ga }}">{{ gj.state }}</span>
+      {% if gj.beat_age %}<span class="job-age">{{ gj.beat_age }}</span>{% endif %}
+    </span>
+  </summary>
+  <div class="jobbody">
+    {% if show_markdone and gj.state in ('running', 'stalled') %}
+    <div class="job-actions"><button class="markdone" onclick="markJobDone('{{ gj.job|e }}', this)">mark done</button></div>
+    {% endif %}
+    {% if gj.source %}<div class="job-src">source · {{ gj.source }}</div>{% endif %}
+    {% if gj.total and gj.done is defined %}
+    <div class="pbar"><i style="width:{{ gj.pct or 0 }}%"></i></div>
+    <div class="pbar-legend">
+      <span><b>{{ '{:,}'.format(gj.done) }}</b> / {{ '{:,}'.format(gj.total) }}{% if gj.unit %} {{ gj.unit }}{% endif %}</span>
+      <span class="pct">{{ (gj.pct|jsnum) if gj.pct is not none else '—' }}%</span>
+    </div>
+    {% endif %}
+    {% if gj.queues %}
+    <div class="queue-strip">
+      {% for q in gj.queues %}
+      <div class="queue-row" title="{{ q.name }}">
+        <span class="queue-label">{{ q.name }}</span>
+        <div class="queue-bar"><i style="width:{{ q.pct or 0 }}%"></i></div>
+        <span class="queue-text"><b>{{ '{:,}'.format(q.done) }}</b>/{{ '{:,}'.format(q.total) }} ({{ (q.pct|jsnum) if q.pct is not none else '—' }}%){% if q.rate %} · ~{{ q.rate }}/min{% endif %}{% if q.eta %} · ETA ~{{ q.eta }}m{% endif %}{% if q.waiting is defined and q.waiting is not none %} · {{ '{:,}'.format(q.waiting) }} queued{% if q.active is defined and q.active %} · {{ q.active }} active{% endif %}{% endif %}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if gj.gpus %}
+    <div class="queue-strip gpu-strip">
+      {% for g in gj.gpus %}
+      <div class="queue-row" title="{{ g.name }}">
+        <span class="queue-label">{{ g.role }}</span>
+        <div class="queue-bar"><i style="width:{{ g.util or 0 }}%"></i></div>
+        <span class="queue-text">{% if 'ML' in g.role %}{{ (g.util|jsnum) if g.util is not none else '—' }}% · {{ g.mem_used }}/{{ g.mem_total }}MB · {{ g.temp|jsnum }}°{% else %}enc {{ (g.enc|jsnum) if g.enc is not none else '—' }}% · dec {{ (g.dec|jsnum) if g.dec is not none else '—' }}% · {{ g.mem_used }}MB · {{ g.temp|jsnum }}°{% endif %}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="jobstats">
+      {% if gj.rate is defined %}
+        {% if gj.spark and gj.spark_label %}
+        <span class="stat withspark">
+          <span style="display:flex;flex-direction:column"><b>{{ gj.rate }}</b><span>{{ gj.unit or 'rate' }}</span></span>
+          <svg class="jobspark" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ gj.spark }}"/></svg>
+        </span>
+        {% else %}
+        <span class="stat"><b>{{ gj.rate }}</b><span>{{ gj.unit or 'rate' }}</span></span>
+        {% endif %}
+      {% endif %}
+      {% if gj.eta %}<span class="stat"><b>{{ gj.eta }}</b><span>eta</span></span>{% endif %}
+      {% if gj.uptime %}<span class="stat"><b>{{ gj.uptime }}</b><span>uptime</span></span>{% endif %}
+    </div>
+    {% if gj.metrics %}
+    {% set metric_labels = {'files_per_min':'files/min','read_mb_per_s':'MB/s','gb_hashed':'GB hashed','last_path':'current'} %}
+    <div class="prog">
+      <div class="prog-head">job metrics</div>
+      <div class="jobstats">
+        {% for k, v in gj.metrics.items() %}
+        {% set lbl = metric_labels.get(k, k|replace('_',' ')) %}
+        {% if v is number %}
+          {% if gj.spark and gj.spark_key == k %}
+          <span class="stat withspark">
+            <span style="display:flex;flex-direction:column"><b>{{ v }}</b><span>{{ lbl }}</span></span>
+            <svg class="jobspark" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ gj.spark }}"/></svg>
+          </span>
+          {% else %}
+          <span class="stat"><b>{{ v }}</b><span>{{ lbl }}</span></span>
+          {% endif %}
+        {% else %}
+          <span class="stat"><b class="mono" title="{{ v }}">{{ v.split('/')|last if '/' in v else v|truncate(32, true, '…') }}</b><span>{{ lbl }}</span></span>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if gj.progress_age_s is defined or gj.thermal or gj.tripwire or gj.remaining is defined or gj.last_path %}
+    <div class="prog{% if gj.progress_stale %} stale{% endif %}">
+      {% if gj.resumed_from is defined %}
+      <div class="prog-sub">resumed from <b>{{ '{:,}'.format(gj.resumed_from) }}</b>{% if gj.scanned_this_run is defined %} · +{{ '{:,}'.format(gj.scanned_this_run) }} this run{% endif %}{% if gj.remaining is defined %} · <b>{{ '{:,}'.format(gj.remaining) }}</b> remaining{% endif %}</div>
+      {% elif gj.remaining is defined %}
+      <div class="prog-sub"><b>{{ '{:,}'.format(gj.remaining) }}</b> remaining</div>
+      {% endif %}
+      {% if gj.clips_per_min is defined or gj.eta_zone or gj.elapsed_hours is defined %}
+      <div class="jobstats">
+        {% if gj.clips_per_min is defined %}<span class="stat"><b>{{ gj.clips_per_min }}{% if gj.clips_per_min_cumulative is defined %} <span class="cum">({{ gj.clips_per_min_cumulative }} cum)</span>{% endif %}</b><span>clips/min</span></span>{% endif %}
+        {% if gj.eta_zone %}<span class="stat"><b>{{ gj.eta_zone.central }}</b><span>eta · {{ gj.eta_zone.utc }}</span></span>{% endif %}
+        {% if gj.elapsed_hours is defined %}<span class="stat"><b>{{ gj.elapsed_hours|jsnum }}h</b><span>elapsed</span></span>{% endif %}
+      </div>
+      {% endif %}
+      {% if gj.thermal %}
+      {% set th = gj.thermal %}
+      {% set tclass = 'overexposed' if th.throttle_active else ('safelight' if th.thermal_state and th.thermal_state not in ('nominal','ok') else 'developed') %}
+      <div class="prog-head">thermal{% if th.thermal_state %} <span class="chip {{ tclass }}">{{ th.thermal_state }}</span>{% endif %}{% if th.throttle_active %} <span class="chip overexposed">throttling{% if th.throttle_reasons and th.throttle_reasons != 'none' %} · {{ th.throttle_reasons }}{% endif %}</span>{% endif %}</div>
+      <div class="jobstats">
+        {% if th.temp_c is not none %}<span class="stat"><b>{{ th.temp_c|jsnum }}°{% if th.temp_c_max is not none %} <span class="cum">max {{ th.temp_c_max|jsnum }}°</span>{% endif %}</b><span>temp c</span></span>{% endif %}
+        {% if th.margin_c is not none %}<span class="stat"><b>{{ th.margin_c|jsnum }}°</b><span>margin</span></span>{% endif %}
+        {% if th.fan_pct is not none %}<span class="stat"><b>{{ th.fan_pct|jsnum }}%</b><span>fan</span></span>{% endif %}
+        {% if th.power_w is not none %}<span class="stat"><b>{{ th.power_w }}{% if th.power_limit_w is not none %} <span class="cum">/ {{ th.power_limit_w }}</span>{% endif %}</b><span>power w</span></span>{% endif %}
+        {% if th.thermal_soft_events is not none %}<span class="stat"><b>{{ th.thermal_soft_events }}</b><span>soft events</span></span>{% endif %}
+      </div>
+      {% endif %}
+      {% set tw = gj.tripwire or {} %}
+      {% if gj.passa_errors is defined or gj.tripwire or gj.dead_clips is defined or gj.parse_errors is defined %}
+      <div class="prog-head">health &amp; errors{% if tw %}{% if tw.tripped %} <span class="chip overexposed">tripwire tripped</span>{% elif tw.armed %} <span class="chip developed"{% if tw.last_probe %} title="{{ tw.last_probe }}"{% endif %}>tripwire armed</span>{% endif %}{% endif %}</div>
+      <div class="jobstats">
+        {% if gj.passa_errors is defined %}<span class="stat"><b>{{ gj.passa_errors }}{% if gj.passb_errors is defined %} / {{ gj.passb_errors }}{% endif %}</b><span>passA / passB err</span></span>{% endif %}
+        {% if gj.parse_errors is defined %}<span class="stat"><b>{{ gj.parse_errors }}</b><span>parse err</span></span>{% endif %}
+        {% set iofb = tw.io_fallbacks if tw.io_fallbacks is defined else (gj.io_fallbacks if gj.io_fallbacks is defined else none) %}
+        {% set defb = tw.decoder_fallbacks if tw.decoder_fallbacks is defined else (gj.decoder_fallbacks if gj.decoder_fallbacks is defined else none) %}
+        {% if iofb is not none %}<span class="stat"><b>{{ iofb }}{% if defb is not none %} / {{ defb }}{% endif %}</b><span>io / dec fallbacks</span></span>{% endif %}
+        {% if gj.dead_clips is defined %}<span class="stat"><b>{{ gj.dead_clips }}</b><span>dead clips</span></span>{% endif %}
+      </div>
+      {% if tw and tw.last_probe_ok is defined %}<div class="prog-sub"{% if tw.last_probe %} title="{{ tw.last_probe }}"{% endif %}>last probe {{ 'ok' if tw.last_probe_ok else 'FAILED' }}</div>{% endif %}
+      {% endif %}
+      {% if gj.last_path %}
+      <div class="prog-clip" title="{{ gj.last_path }}">current · <b>{{ gj.last_path.split('/')|last }}</b></div>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if gj.host_temp_c is defined or gj.host_load1 is defined or gj.host_cpu_util_pct is defined or gj.host_mem_used_mb is defined %}
+    {% set h_nearcrit = gj.host_temp_crit_c is defined and gj.host_temp_c is defined and gj.host_temp_c >= gj.host_temp_crit_c - 5 %}
+    {% set h_warm = gj.host_temp_high_c is defined and gj.host_temp_c is defined and gj.host_temp_c >= gj.host_temp_high_c %}
+    {% set h_busy = gj.host_cpu_util_pct is defined and gj.host_cpu_util_pct >= 95 %}
+    {% set h_loaded = gj.host_cpu_util_pct is defined and gj.host_cpu_util_pct >= 80 %}
+    {% set h_class = 'overexposed' if (h_nearcrit or h_busy) else ('safelight' if (h_warm or h_loaded) else '') %}
+    <div class="prog{% if gj.host_stale %} stale{% endif %}">
+      <div class="prog-head">host · cpu{% if h_class %} <span class="chip {{ h_class }}">{{ 'hot' if (h_nearcrit or h_warm) else 'busy' }}</span>{% endif %}{% if gj.host_stale %} <span class="chip unexposed">stale</span>{% endif %}</div>
+      <div class="jobstats">
+        {% if gj.host_temp_c is defined %}<span class="stat"><b>{{ gj.host_temp_c|jsnum }}°{% if gj.host_temp_high_c is defined %} <span class="cum">/ {{ gj.host_temp_high_c|jsnum }}°{% if gj.host_temp_crit_c is defined %} · {{ gj.host_temp_crit_c|jsnum }}° crit{% endif %}</span>{% endif %}</b><span>cpu temp</span></span>{% endif %}
+        {% if gj.host_cpu_util_pct is defined %}<span class="stat"><b>{{ gj.host_cpu_util_pct|jsnum }}%</b><span>cpu util</span></span>{% endif %}
+        {% if gj.host_load1 is defined %}<span class="stat"><b>{{ gj.host_load1 }}{% if gj.host_nproc is defined %} <span class="cum">/ {{ gj.host_nproc }}</span>{% endif %}</b><span>load1{% if gj.host_nproc is defined %} · nproc{% endif %}</span></span>{% endif %}
+        {% if gj.host_mem_used_mb is defined %}<span class="stat"><b>{{ gj.host_mem_used_mb }}{% if gj.host_mem_avail_mb is defined %} <span class="cum">/ {{ gj.host_mem_avail_mb }} free</span>{% endif %}</b><span>mem mb used</span></span>{% endif %}
+        {% if gj.host_freq_mhz is defined %}<span class="stat"><b>{{ gj.host_freq_mhz }}{% if gj.host_freq_max_mhz is defined %} <span class="cum">/ {{ gj.host_freq_max_mhz }}</span>{% endif %}</b><span>freq mhz</span></span>{% endif %}
+        {% if gj.host_undervolt_alarm is defined %}<span class="stat"><b>{{ "YES" if gj.host_undervolt_alarm else "no" }}</b><span>undervolt</span></span>{% endif %}
+        {% if gj.host_fan_rpm is defined %}<span class="stat"><b>{{ gj.host_fan_rpm }}</b><span>max fan rpm</span></span>{% endif %}
+        {% if gj.host_fan1_rpm is defined %}<span class="stat"><b>{{ gj.host_fan1_rpm }}</b><span>fan1 rpm</span></span>{% endif %}
+        {% if gj.host_fan2_rpm is defined %}<span class="stat"><b>{{ gj.host_fan2_rpm }}</b><span>cpu fan rpm</span></span>{% endif %}
+        {% if gj.host_fan4_rpm is defined %}<span class="stat"><b>{{ gj.host_fan4_rpm }}</b><span>fan4 rpm</span></span>{% endif %}
+        {% if gj.host_cooling_state is defined %}<span class="stat"><b>{{ gj.host_cooling_state|upper }}</b><span>cooling state</span></span>{% endif %}
+        {% if gj.host_fancontrol_active is defined %}<span class="stat"><b>{{ 'ACTIVE' if gj.host_fancontrol_active else 'DOWN' }}</b><span>fancontrol</span></span>{% endif %}
+        {% if gj.host_pwm_full is defined %}<span class="stat"><b>{{ 'FULL' if gj.host_pwm_full else 'VARIABLE' }}</b><span>fan posture</span></span>{% endif %}
+        {% if gj.host_thermal_throttle_count is defined %}<span class="stat"><b>{{ gj.host_thermal_throttle_count }}</b><span>thermal throttles</span></span>{% endif %}
+        {% if gj.host_thermal_guard_action %}<span class="stat"><b>{{ gj.host_thermal_guard_action }}</b><span>guard action</span></span>{% endif %}
+        {% if gj.host_power_w is defined %}<span class="stat"><b>{{ gj.host_power_w }}</b><span>power w</span></span>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+    {% if gj.attempts_count %}
+      {% if gj.state == 'running' %}
+        {% if gj.attempts_count > 1 %}
+        <div class="job-agg">attempt {{ gj.attempts_count }}{% if gj.prior_attempts %} · {{ gj.prior_attempts }} prior{% endif %} · <b>{{ gj.active_time }}</b> active so far{% if gj.outcomes_summary %} · {{ gj.outcomes_summary }}{% endif %}</div>
+        {% endif %}
+      {% else %}
+      <div class="job-agg finished">ran <b>{{ gj.active_time }}</b> active across {{ gj.attempts_count }} attempt{{ 's' if gj.attempts_count != 1 else '' }} · {{ gj.wall_span }} wall-clock{% if gj.outcomes_summary %} · {{ gj.outcomes_summary }}{% endif %}</div>
+      {% endif %}
+    {% endif %}
+    {% if gj.beat_age %}
+    <div class="job-beat">last beat <span class="fresh">{{ gj.beat_age }}</span>{% if gj.phase %} · phase {{ gj.phase }}{% endif %}</div>
+    {% endif %}
+    {% if gj.detail %}<div class="job-detail">{{ gj.detail }}</div>{% endif %}
+    {% if gj.message %}<div class="job-last" title="{{ gj.message }}">{{ gj.message }}</div>{% endif %}
+  </div>
+</details>
+{% endmacro %}

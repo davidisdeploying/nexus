@@ -1,0 +1,35 @@
+{
+  "_comment": "PANEL-7 terminal-archive allowlist. Exactly the 10 legacy done job ids conservatively cleared for archival, per cross-seat recon reconciliation (2026-07-23). a1v2-watchdog{,3} are owned by the separate PANEL-2 archive and are deliberately NOT listed here. nas3-photo-mirror is deliberately NOT listed here: Worker1's recon flagged it UNKNOWN/PRESERVE (possible NAS-side recurrence via echo rclone) even though Worker3's independent recon said ALLOW_ARCHIVE — resolved conservatively toward preservation. Adding an id here is necessary but not sufficient: the tool still hard-denies on state/kind/age/shape/hard-denied-id-substring regardless of allowlist membership.",
+  "jobs": {
+    "avif-ingest-96": {
+      "evidence": "done 96/96 files; owner Worker1 (FLEET-WORKER1-BUILD-20260704-ingest-96); zero cron/systemd/process reference since completion; hash-stable across 3 independent same-day recons (Worker3, Worker1)."
+    },
+    "worker1-1b-scratch-recluster": {
+      "evidence": "done 1/1 (87s scratch verification run inside Worker1's local-people-signal build, 2026-07-05, /tmp scratch dbs only); one-shot by design; no live producer."
+    },
+    "worker5-delta-scan-5508": {
+      "evidence": "done 5165/5165 clips; owner Worker5/Worker3 (FLEET-WORKER5-BUILD-20260704-delta-scan-5508); referenced only as a static example card through 2026-07-05, never relaunched."
+    },
+    "worker5-identity-backfill": {
+      "evidence": "done 40641/40641 clips; owner Worker5/Worker3 (FLEET-WORKER5-BUILD-20260705-identity-backfill-resume); one documented clean mid-run relaunch already resolved; no further reference."
+    },
+    "realqa-score-sample": {
+      "evidence": "done 4499/4499 images, ts 2026-07-19 23:34; owner charlie/Worker3 GPU0; an earlier false-done state on 2026-07-19 15:45 (launcher-exit artifact) was caught and reconciled by ground-truth recon before this terminal beat; zero live process."
+    },
+    "stage2b-finish": {
+      "evidence": "done (no total field, done:0 — expected shape for this record); delta; weakest provenance of the 10 but corroborated by 2026-07-16 audit grouping it with video-face-pass as historical/non-recurring; zero cron/timers/process fleet-wide."
+    },
+    "stage2b-recluster": {
+      "evidence": "done (no total field, done:0); delta; same corroboration as stage2b-finish (2026-07-16 audit, historical/non-recurring); zero cron/timers/process fleet-wide."
+    },
+    "stage5-siglip2-fullpass": {
+      "evidence": "done 61971/61971 images; owner Worker5/Worker3; full production SigLIP2 pass, resume-safe, completion-notify fired on exit, explicitly not restarted since (2026-07-13-stage5-embeddings.md)."
+    },
+    "video-face-pass": {
+      "evidence": "done 26972/26983 (11 documented ffmpeg decode errors, internally consistent with the pass's own MANIFEST.json); export hash-verified delivered to delta; called out as historical/non-recurring by the 2026-07-16 audit."
+    },
+    "worker-claude-paths": {
+      "evidence": "done (done:0/total:12 is a step-counter artifact, not a stall — state/message are the authoritative terminal signal); owner Worker2; one-time CLAUDE.md migration across worker2/charlie/delta, fully described as completed with timestamped backups (2026-07-10-worker-claude-paths.md)."
+    }
+  }
+}

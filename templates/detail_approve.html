@@ -1,0 +1,74 @@
+{% import "_app_shell.html" as app_shell %}
+{% if not partial %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ token }} · approve</title>
+{{ app_shell.app_icons() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+<link rel="stylesheet" href="/static/detail.css">
+</head>
+<body class="wiki-body">
+<div class="circuits"></div>
+<div class="nexus">
+<div class="screen">
+
+  <div class="wiki-head">
+    <a class="eye" href="/" title="Fleet board">
+      {{ app_shell.nexus_eye() }}
+    </a>
+    <a class="brand" href="/">
+      <h1>{{ token }}</h1>
+    </a>
+    <div class="tools">
+      {% if run_found %}<a class="navlink" href="/run/{{ token }}">run detail</a>{% endif %}
+      <a class="navlink" href="/">board</a>
+    </div>
+  </div>
+{% endif %}
+
+  <div class="detail-partial" id="detail-approve">
+    <div class="d-section">
+      <div class="d-section-title">staged build — summary</div>
+      <dl class="d-kv">
+        <dt>token</dt><dd class="d-mono">{{ token }}</dd>
+        <dt>seat</dt><dd>{{ seat or '—' }}</dd>
+        <dt>kind</dt><dd>{{ kind or '—' }}</dd>
+        <dt>slug</dt><dd>{{ slug }}</dd>
+        <dt>date</dt><dd>{{ date or '—' }}</dd>
+        <dt>lane</dt><dd>{{ lane or '—' }}</dd>
+        <dt>started</dt><dd>{{ started_str or '—' }}</dd>
+        <dt>source</dt><dd>{% if run_found %}run dir prompt.txt{% else %}token metadata only (no run dir found){% endif %}</dd>
+      </dl>
+    </div>
+
+    <div class="d-section">
+      <div class="d-section-title">staged prompt</div>
+      {% if prompt_text %}
+      <pre class="d-pre">{{ prompt_text }}</pre>
+      {% else %}
+      <div class="d-empty">no prompt.txt on disk for this token — showing token metadata only.</div>
+      {% endif %}
+    </div>
+
+    {# Approve/Deny placeholders — 56pt bottom-anchored per touch §H.1. INERT for
+       Phase 1: disabled + no handlers. POST wiring lands in Phase 3/5, once the
+       auto-router and the write-side gate both exist. #}
+    <div class="d-approve-bar">
+      <button class="d-btn approve" type="button" disabled aria-disabled="true">approve</button>
+      <button class="d-btn deny" type="button" disabled aria-disabled="true">deny</button>
+    </div>
+    <p class="d-btn-note">inert placeholder — approve/deny wiring is Phase 3/5, not this build.</p>
+  </div>
+
+{% if not partial %}
+</div><!-- /screen -->
+</div><!-- /nexus -->
+</body>
+</html>
+{% endif %}

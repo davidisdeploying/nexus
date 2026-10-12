@@ -1,0 +1,12 @@
+[Unit]
+Description=Nexus hybrid Claude and Gemini usage collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/nexus
+UMask=0077
+Nice=10
+ExecStart=%h/nexus/.venv/bin/python -m app.model_usage --output %h/Vaults/homelab-vault/heartbeats/quota/model-usage.json --history-db %h/.local/share/nexus/model-usage-history.sqlite3 --claude-home %h/.local/share/nexus/usage-homes/claude --gemini-home %h/.local/share/nexus/usage-homes/gemini
+TimeoutStartSec=90

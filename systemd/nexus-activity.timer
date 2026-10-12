@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh Nexus fleet activity cache
+[Timer]
+OnBootSec=4m
+OnUnitActiveSec=15m
+RandomizedDelaySec=20
+AccuracySec=15s
+Persistent=true
+Unit=nexus-activity.service
+[Install]
+WantedBy=timers.target

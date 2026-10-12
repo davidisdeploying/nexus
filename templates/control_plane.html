@@ -1,0 +1,96 @@
+{% import "_app_shell.html" as app_shell %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>operations · Nexus</title>
+{{ app_shell.app_icons() }}
+<link rel="stylesheet" href="/static/nexus.css?v={{ nexus_css_v }}">
+<style>
+  body{background:var(--panel);color:var(--ink);font-family:var(--font-ui);margin:0}
+  .cp{max-width:1120px;margin:0 auto;padding:24px 16px 60px}
+  .back{color:var(--cyan);text-decoration:none;font-size:13px}.back:hover{text-decoration:underline}
+  .head{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding:18px 0 14px}
+  h1,h2{font-family:var(--font-display);margin:0}h1{font-size:28px}h2{font-size:19px;margin-bottom:12px}
+  .stamp,.muted{color:var(--ink-dim);font:12px/1.4 var(--font-mono)}.lead{color:var(--ink-dim);font:14px/1.55 var(--font-ui);margin:16px 0 24px}
+  .cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+  .card,.panel{background:var(--stone);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
+  .card{display:flex;flex-direction:column;gap:8px;min-width:0}.card h3{margin:0;font-size:14px;text-transform:lowercase}
+  .revision{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-dim);font-size:10px}.summary{color:var(--ink-dim);font-size:11px;line-height:1.4}
+  .badge{align-self:flex-start}.section{margin-top:30px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  table{width:100%;border-collapse:collapse;font-size:11px}th,td{text-align:left;vertical-align:top;padding:8px;border-bottom:1px solid var(--line)}th{color:var(--ink-dim);text-transform:uppercase;letter-spacing:.05em}
+  .scroll{overflow:auto;max-width:100%;max-height:420px}.mono{font-family:var(--font-mono)}.error{color:var(--red)}
+  @media(max-width:900px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:1fr}}
+  @media(max-width:520px){.cards{grid-template-columns:1fr}.cp{padding-top:16px}th,td{padding:7px 5px}}
+</style>
+</head>
+<body class="nexus-app-body">
+<div class="circuits"></div>
+<div class="nexus nexus-app-frame"><div class="screen">
+{{ app_shell.dashboard_chrome("operations", chrome_snap, chrome_accent, chrome_unread, chrome_stamp, false, chrome_system_status) }}
+<main class="cp nexus-page-content">
+  {{ app_shell.operations_header("indexes",
+      ("scanned " ~ projection.generated_at_central) if projection.available else "cache unavailable",
+      "") }}
+  <p class="lead">Read-only navigation and validator evidence for the five canonical fleet indexes. The Markdown sources remain authoritative; this page is a scheduled, sanitized projection and never edits the Vault.</p>
+
+  {% if not projection.available %}
+  <div class="panel error">{{ projection.error }}</div>
+  {% else %}
+  <section class="cards" aria-label="Central index status">
+    {% for card in projection.cards %}
+    <article class="card" id="{{ card.id }}">
+      <span class="badge {{ card.status }}">{{ card.status }}</span>
+      <h3>{{ card.title }}</h3>
+      <div class="revision">{{ card.revision }}</div>
+      <div class="summary">{{ card.summary }}</div>
+    </article>
+    {% endfor %}
+  </section>
+
+  <section class="section grid">
+    <article class="panel">
+      <h2>physical fleet</h2>
+      <div class="scroll"><table><thead><tr><th>host</th><th>role</th></tr></thead><tbody>
+      {% for row in projection.fleet.hosts %}<tr><td>{{ row.host }}</td><td>{{ row.primary_role }}</td></tr>{% endfor %}
+      </tbody></table></div>
+    </article>
+    <article class="panel">
+      <h2>project roadmaps</h2>
+      <div class="scroll"><table><thead><tr><th>project</th><th>vault</th><th>route</th></tr></thead><tbody>
+      {% for row in projection.roadmaps.check.results %}<tr><td>{{ row.project }}</td><td>{{ row.vault }}</td><td><span class="badge {{ 'ok' if row.status == 'current' else 'error' }}">{{ row.status }}</span></td></tr>{% endfor %}
+      </tbody></table></div>
+    </article>
+  </section>
+
+  <section class="section grid">
+    <article class="panel" id="conventions">
+      <h2>convention ownership</h2>
+      <div class="scroll"><table><thead><tr><th>area</th><th>canonical owner</th></tr></thead><tbody>
+      {% for row in projection.conventions.check.results %}<tr><td>{{ row.area }}</td><td>{{ row.path }} <span class="badge {{ 'ok' if row.status == 'current' else 'error' }}">{{ row.status }}</span></td></tr>{% endfor %}
+      </tbody></table></div>
+    </article>
+    <article class="panel" id="instructions">
+      <h2>instruction parity</h2>
+      {% set ic = projection.instructions.check.counts %}
+      <p class="muted">{{ ic.current or 0 }} automatic surfaces current · {{ ic.manual_current or 0 }} manually verified</p>
+      <div class="scroll"><table><thead><tr><th>surface</th><th>target</th><th>state</th></tr></thead><tbody>
+      {% for row in projection.instructions.check.results %}<tr><td>{{ row.surface }}</td><td>{{ row.target }}</td><td><span class="badge {{ 'ok' if row.status in ['current','manual_current'] else 'error' }}">{{ row.status }}</span></td></tr>{% endfor %}
+      </tbody></table></div>
+    </article>
+  </section>
+
+  <section class="section panel" id="automation">
+    <h2>fleet automations</h2>
+    <p class="muted">{{ projection.automations.check.counts.current or 0 }}/{{ projection.automations.entries|length }} declared schedules and startup jobs current.</p>
+    <div class="scroll"><table><thead><tr><th>host</th><th>kind</th><th>automation</th><th>state</th></tr></thead><tbody>
+    {% for row in projection.automations.check.results %}<tr><td>{{ row.host }}</td><td>{{ row.kind }}</td><td>{{ row.id }}</td><td><span class="badge {{ 'ok' if row.status == 'current' else 'error' }}">{{ row.status }}</span></td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  {% endif %}
+</main>
+</div></div>
+<script src="/static/app_shell.js?v={{ shell_asset_v }}" defer></script>
+</body>
+</html>
